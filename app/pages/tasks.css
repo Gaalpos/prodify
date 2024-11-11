@@ -1,0 +1,57 @@
+.App{
+    background-color: black;
+    color: white;
+}
+h1{
+padding-bottom: 10px;
+}
+li{
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+#botoncillo{
+    background-color: blueviolet;
+    border: none;
+    margin: 5px;
+
+}
+
+#taskForm{
+    background-color: black;
+}
+#saveButton{
+    margin: 5px;
+    background-color: rgb(101, 97, 232);
+    border-radius: 5px;
+
+}
+
+#taskDescription{
+    margin: 5px;
+    border-radius: 5px;
+}
+
+#taskName{
+    margin: 5px;
+    border-radius: 5px;
+}
+
+#card{
+    background-color: rgb(32, 32, 32);
+    color: white;
+    border-radius: 15px;
+}
+
+#deleteButton{
+    background-color: rgb(118, 59, 59);
+    color: white;
+    margin-right: 5px;
+}
+
+#editButton{
+    background-color: rgb(59, 118, 86);
+    color: white;
+    margin-left: 5px;
+}
+

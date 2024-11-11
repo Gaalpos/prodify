@@ -1,0 +1,90 @@
+.App{
+    background-color: black;
+    color: white;
+}
+h1{
+padding-bottom: 10px;
+}
+li{
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+
+p{
+    text-align: start;
+}
+
+#taskForm{
+    background-color: black;
+}
+#saveButton{
+    
+    background-color: rgb(101, 97, 232);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: none;
+
+
+}
+
+#saveButton:hover{
+    background-color: rgb(38, 239, 115);
+    border: none;
+
+
+}
+
+#taskDescription{
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background-color: rgb(71, 71, 71);
+    color: white;
+    border: none;
+
+}
+
+#taskName{
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background-color: rgb(71, 71, 71);
+    color: white;
+    border: none;
+}
+
+#card{
+    background-color: rgb(32, 32, 32);
+    color: white;
+    border-radius: 15px;
+    
+}
+
+#card:hover{
+    background-color: rgb(83, 83, 83);
+    border-radius: 15px;
+    cursor: pointer;
+}
+
+.btn.deleteButton{
+    background-color: rgb(118, 59, 59);
+    color: white;
+    margin-right: 5px;
+}
+.btn.deleteButton:hover{
+    background-color: rgb(206, 13, 13);
+    color: white;
+    margin-right: 5px;
+}
+
+
+
+.btn.copyButton{
+    background-color: rgb(75, 142, 186);
+    color: white;
+    margin-right: 5px;
+}
+.btn.copyButton:hover{
+    background-color: rgb(17, 156, 248);
+    color: white;
+    margin-right: 5px;
+}
