@@ -3,10 +3,11 @@
 The tool you need to make yourself a prodigy
 
 ## Features
-- Notes
-- Tasks (in the works)
-- Projects (in the works)
-- Media tracking (in the works)
+- [x] Notes
+- [ ] Tasks 
+- [ ] Projects 
+- [ ] Games tracking 
+- [ ] Books tracking 
 
 ### Requeriments
 
