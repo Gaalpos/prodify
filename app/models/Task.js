@@ -1,14 +1,15 @@
-const { model, Schema } = require("mongoose");
+const {model, Schema} = require ("mongoose")
 
-const newTaskSchema = new Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-});
+const CheckItem = new Schema ({
+    name: {
+        type: String,
+        required: true,
+    },
+    completed: {
+        type: Boolean,
+        required: true,
+        default: false,
+    }
+})
 
-module.exports = model("Task", newTaskSchema);
+module.exports = model("CheckItem", CheckItem)

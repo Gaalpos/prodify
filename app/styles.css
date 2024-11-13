@@ -15,7 +15,7 @@ p{
     text-align: start;
 }
 
-#taskForm{
+#noteForm{
     background-color: black;
 }
 #saveButton{
@@ -29,13 +29,13 @@ p{
 }
 
 #saveButton:hover{
-    background-color: rgb(38, 239, 115);
+    background-color: rgb(38, 159, 239);
     border: none;
 
 
 }
 
-#taskDescription{
+#noteDescription{
     border-radius: 5px;
     margin-bottom: 10px;
     background-color: rgb(71, 71, 71);
@@ -44,7 +44,7 @@ p{
 
 }
 
-#taskName{
+#noteName{
     border-radius: 5px;
     margin-bottom: 10px;
     background-color: rgb(71, 71, 71);
@@ -71,7 +71,7 @@ p{
     margin-right: 5px;
 }
 .btn.deleteButton:hover{
-    background-color: rgb(206, 13, 13);
+    background-color: rgb(183, 42, 42);
     color: white;
     margin-right: 5px;
 }
@@ -84,7 +84,7 @@ p{
     margin-right: 5px;
 }
 .btn.copyButton:hover{
-    background-color: rgb(17, 156, 248);
+    background-color: rgb(12, 154, 248);
     color: white;
     margin-right: 5px;
 }
