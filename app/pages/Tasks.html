@@ -49,32 +49,23 @@
     <div class="container text-center col">
         <div class="row ">
             <div class="col-sm-12 col-lg-4">
-                <!-- <h1>Note editor</h1> -->
                 <form id="taskForm" class="card">
-                    <input class="textInput" type="text" id="taskName" placeholder="Title" autofocus>
+                    <input class="textInput" type="text" id="taskName" placeholder="Title">
                     <button type="submit" class="btn btn-secondary" id="saveTask">
                         Save
                     </button>
                 </form>
             </div>
 
-            <div class="container text- center col">
+            <div class="container text-center col">
                 <div class="album py-1 text-start">
                     <div class="container text-center">
-
-                        <div class="row" id="taskList">
-                            <div class="task">
-                                <label for="vehicle1"> My task</label><br>
-                            </div>
-
+                        <h1>Next tasks</h1>
+                        <div class="row d-flex" id="tasksList">
+                            <script src="../ui/taskManager.js"></script>
                         </div>
-
-                        <!-- <div class="row" id="taskList">
-                            <script src="ui/taskManager.js"></script>
-                        </div> -->
                     </div>
                 </div>
-
             </div>
 
         </div>

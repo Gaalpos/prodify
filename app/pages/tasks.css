@@ -24,6 +24,9 @@ li{
 #taskName{
     margin: 5px;
     border-radius: 5px;
+    background-color: rgb(77, 77, 77);
+    border:none;
+    color: white;
 }
 
 
@@ -52,11 +55,21 @@ li{
     padding: 5px;
     margin: 5px;
     border-radius: 10px;
+    width: 100%;
 
 }
-
 .task:hover{
     background-color: rgb(149, 149, 149);
     cursor: pointer;
 
+}
+
+#card{
+    background-color: rgb(40, 40, 40);
+    color: white;
+}
+
+#card:hover{
+    background-color: rgb(77, 77, 77);
+cursor: pointer;
 }

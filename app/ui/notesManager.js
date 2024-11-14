@@ -7,10 +7,11 @@ const noteList = document.querySelector("#notesList");
 
 let updateStatus = false;
 let idNoteToUpdate = "";
+let notes = [];
 
 function deleteNote(id) {
  event.stopPropagation();
-  const response = confirm("Are you sure you want to delete it?");
+  const response = confirm("Delete note?");
   if (response) {
     ipcRenderer.send("delete-note", id);
     // Ensure the form is reset and inputs are enabled
@@ -29,28 +30,27 @@ function editNote(id) {
   idNoteToUpdate = id;
   const note = notes.find((note) => note._id === id);
   noteName.value = note.name;
-  noteDescription.value = note.description;
-  
+  noteDescription.value = note.description; 
 }
  function renderNotes(notes) {
   noteList.innerHTML = "";
   notes.map((t) => {
     noteList.innerHTML += `
-      <div class="col-12 col-sm-12 col-md-6 col-lg-6 mb-4" id="contenedor" onclick="editNote('${t._id}')">
-    <div class="card card-shadow-sm p-3" id="card">
-          <div class="card-body">
-          <h2 id="text-to-copy-title">${t.name}</h2>
-           <p id="text-to-copy-body">${t.description}</p>
-       <button class="btn copyButton" onclick="copyText()">Copy</button>
-           <button class="btn deleteButton"onclick="deleteNote('${t._id}')">Delete</button>
-       </div>
-      </div>
+       <div class="col-12 col-sm-12 col-md-6 col-lg-6 mb-4" id="contenedor" onclick="editNote('${t._id}')">
+         <div class="card card-shadow-sm p-3" id="card">
+             <div class="card-body">
+                 <h2 id="text-to-copy-title">${t.name}</h2>
+                 <p id="text-to-copy-body">${t.description}</p>
+                 <button class="btn copyButton" onclick="copyText()">Copy</button>
+                 <button class="btn deleteButton"onclick="deleteNote('${t._id}')">Delete</button>
+             </div>
+         </div>
       </div>
 `;
  });
  }
 
-let notes = [];
+
 
 noteForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -65,7 +65,6 @@ noteForm.addEventListener("submit", async (e) => {
   } else {
     ipcRenderer.send("update-note", { ...note, idNoteToUpdate });
   }
-
   noteForm.reset();
 });
 

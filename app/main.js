@@ -1,5 +1,6 @@
 const { BrowserWindow, ipcMain } = require("electron");
 const Note = require("./models/Note");
+const Task = require("./models/Task");
 const path = require('path');
 
 function createWindow() {
@@ -14,11 +15,12 @@ function createWindow() {
     autoHideMenuBar: true,
     fullscreen: false,
   });
-
   win.loadFile("app/index.html");
   //win.maximize();
 }
 
+
+/*          NOTES       */
 ipcMain.on("new-note", async (e, arg) => {
   const newNote = new Note(arg);
   const noteSaved = await newNote.save();
@@ -44,5 +46,18 @@ ipcMain.on("update-note", async (e, args) => {
   );
   e.reply("update-note-success", JSON.stringify(updatedNote));
 });
+
+/*     TASKS       */
+ipcMain.on("new-task", async (e, arg) => {
+  const newTask = new Task(arg);
+  const taskSaved = await newTask.save();
+  e.reply("new-task-created", JSON.stringify(taskSaved));
+});
+
+ipcMain.on("get-tasks", async (e, arg) => {
+  const tasks = await Task.find();
+  e.reply("get-tasks", JSON.stringify(tasks));
+});
+
 
 module.exports = { createWindow };

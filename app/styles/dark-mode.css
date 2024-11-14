@@ -1,0 +1,82 @@
+.App{
+    background-color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
+}
+
+#noteForm{
+    background-color: rgb(0, 0, 0);
+    border: none;
+}
+
+
+#noteDescription{
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background-color: rgb(69, 69, 69);
+    color: rgb(255, 255, 255);
+    border: none;
+}
+
+#noteName{
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background-color: rgb(69, 69, 69);
+    color: rgb(255, 255, 255);
+    border: 1px;
+}
+
+#card{
+    background-color: rgb(40, 40, 40);
+    color: rgb(255, 255, 255);
+    border-radius: 15px;
+    border: none;
+    
+}
+
+#card:hover{
+    background-color: rgb(77, 77, 77);
+    cursor: pointer;
+}
+
+/* Card buttons */
+
+.btn.deleteButton{
+    background-color: rgb(209, 58, 58);
+    color: white;
+    margin-right: 5px;
+}
+.btn.deleteButton:hover{
+    background-color: rgb(255, 0, 0);
+    color: white;
+    margin-right: 5px;
+}
+.btn.copyButton{
+    background-color: rgb(37, 223, 240);
+    color: white;
+    margin-right: 5px;
+}
+.btn.copyButton:hover{
+    background-color: rgb(38, 239, 115);
+
+    color: white;
+    margin-right: 5px;
+}
+
+
+/* Save not buttons */
+#saveButton{  
+    background-color: rgb(101, 97, 232);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: none;
+}
+
+#saveButton:hover{
+    background-color: rgb(38, 239, 115);
+    border: none;
+}
+
+.nav-link{
+    background-color: aquamarine;
+}
+
