@@ -59,5 +59,18 @@ ipcMain.on("get-tasks", async (e, arg) => {
   e.reply("get-tasks", JSON.stringify(tasks));
 });
 
+ipcMain.on("delete-task", async (e, args) => {
+  const taskDeleted = await Task.findByIdAndDelete(args);
+  e.reply("delete-task-success", JSON.stringify(taskDeleted));
+});
+
+ipcMain.on("update-task", async (e,args) =>{
+  console.log(args);
+  const updatedTask = await Task.findByIdAndUpdate(
+    args.idTaskToDelete,
+    {name : args.name},
+    {new:true}
+  )
+})
 
 module.exports = { createWindow };

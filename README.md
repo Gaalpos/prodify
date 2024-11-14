@@ -4,10 +4,14 @@ The tool you need to make yourself a prodigy
 
 ## Features
 - [x] Notes
-- [ ] Tasks 
+- [x] Tasks 
 - [ ] Projects 
 - [ ] Games tracking 
 - [ ] Books tracking 
+
+## Know bugs
+
+- Inputs get disabled / unclickable after deleting task
 
 ### Requeriments
 

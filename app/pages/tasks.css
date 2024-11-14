@@ -3,13 +3,16 @@
     color: white;
 }
 h1{
-padding-bottom: 10px;
-}
-li{
-    margin-left: 10px;
-    margin-right: 10px;
-}
-
+    padding-bottom: 10px;
+    }
+    li{
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    
+    p{
+        text-align: start;
+    }
 #botoncillo{
     background-color: blueviolet;
     border: none;
@@ -55,9 +58,7 @@ li{
     padding: 5px;
     margin: 5px;
     border-radius: 10px;
-    width: 100%;
-
-}
+    }
 .task:hover{
     background-color: rgb(149, 149, 149);
     cursor: pointer;
@@ -67,9 +68,56 @@ li{
 #card{
     background-color: rgb(40, 40, 40);
     color: white;
+    margin-bottom:10px ;
+    border-radius: 10px;
 }
 
 #card:hover{
     background-color: rgb(77, 77, 77);
 cursor: pointer;
+}
+
+::-webkit-scrollbar {
+    display: none;
+} 
+
+
+.task-header {
+    display: flex;
+    align-items: center;
+}
+  
+  .task-header h2 {
+    margin: 0;
+    margin-left: 10px; /* Separación entre el check y el título */
+    text-align: left; /* Alineación a la izquierda */
+    flex-grow: 1; /* Esto permite que el título ocupe el espacio restante */
+}
+  
+
+
+.btn.deleteButton{
+    background-color: rgb(209, 58, 58);
+    color: white;
+    margin-right: 5px;
+}
+
+.btn.deleteButton:hover{
+    background-color: rgb(255, 0, 0);
+    color: white;
+    margin-right: 5px;
+}
+
+
+.btn.checkButton{
+    background-color: rgb(37, 223, 240);
+    color: white;
+    margin-right: 5px;
+}
+
+.btn.checkButton:hover{
+    background-color: rgb(38, 239, 115);
+
+    color: white;
+    margin-right: 5px;
 }

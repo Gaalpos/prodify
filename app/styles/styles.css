@@ -1,4 +1,3 @@
-
 h1{
 padding-bottom: 10px;
 }
@@ -9,4 +8,19 @@ li{
 
 p{
     text-align: start;
+}
+::-webkit-scrollbar {
+    display: none;
+} 
+
+ .btn.deleteButton{
+        background-color: rgb(209, 58, 58);
+        color: white;
+        margin-right: 5px;
+}
+
+.btn.deleteButton:hover{
+        background-color: rgb(255, 0, 0);
+        color: white;
+        margin-right: 5px;
 }
