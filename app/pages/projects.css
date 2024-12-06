@@ -24,18 +24,16 @@ p {
 
 }
 
-#taskForm {
+#projectForm {
     background-color: black;
 }
 
-#taskName {
+#projectName {
     border-radius: 5px;
     background-color: rgb(69, 69, 69);
     border: none;
     color: white;
     margin-bottom: 10px;
-    border: 0;
-    outline: 0;
 }
 
 
@@ -46,27 +44,26 @@ p {
 }
 
 
-#saveTask {
+#saveProject {
     background-color: rgb(101, 97, 232);
     border-radius: 5px;
 }
 
-#saveTask:hover {
+#saveProject:hover {
     background-color: rgb(38, 239, 115);
 
 }
 
-.task {
+.project {
     background-color: rgb(32, 32, 32);
     margin-bottom: 5px;
     margin-top: 5px;
     padding: 5px;
     margin-bottom: 5px;
     border-radius: 10px;
-
 }
 
-.task:hover {
+.project:hover {
     background-color: rgb(149, 149, 149);
     cursor: pointer;
 

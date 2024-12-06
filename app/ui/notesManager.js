@@ -9,20 +9,32 @@ let updateStatus = false;
 let idNoteToUpdate = "";
 let notes = [];
 
+// FUNCTIONS
+
 function deleteNote(id) {
- event.stopPropagation();
+  event.stopPropagation();
   const response = confirm("Delete note?");
   if (response) {
     ipcRenderer.send("delete-note", id);
-    // Ensure the form is reset and inputs are enabled
     noteName.value = '';
     noteDescription.value = '';
     updateStatus = false;
     document.getElementById('saveButton').innerHTML = "Save";
-    console.log("deleted")
   }
   return;
-} 
+}
+function copyText(id) {
+  event.stopPropagation();
+  const note = notes.find((note) => note._id === id);
+  copiedName = note.name;
+  copiedDescription = note.description;
+  const copiedNote = `"${copiedName}"\n\n${copiedDescription}`;
+
+  navigator.clipboard.writeText(copiedNote).then(function () {
+  }).catch(function (err) {
+    console.error('Error copying text: ', err);
+  });
+}
 
 function editNote(id) {
   document.getElementById('saveButton').innerHTML = "Edit note";
@@ -30,42 +42,38 @@ function editNote(id) {
   idNoteToUpdate = id;
   const note = notes.find((note) => note._id === id);
   noteName.value = note.name;
-  noteDescription.value = note.description; 
+  noteDescription.value = note.description;
 }
- function renderNotes(notes) {
+
+
+
+
+
+
+function renderNotes(notes) {
   noteList.innerHTML = "";
   notes.map((t) => {
     noteList.innerHTML += `
        <div class="col-12 col-sm-12 col-md-6 col-lg-6 mb-4" id="contenedor" onclick="editNote('${t._id}')">
          <div class="card card-shadow-sm p-3" id="card">
              <div class="card-body">
-                 <h2 id="text-to-copy-title">${t.name}</h2>
-                 <p id="text-to-copy-body">${t.description}</p>
-                 <button class="btn copyButton" onclick="copyText()">Copy</button>
+                 <h2 >${t.name}</h2>
+                 <p>${t.description}</p>
+                 <button class="btn copyButton" onclick="copyText('${t._id}')">Copy</button>
                  <button class="btn deleteButton"onclick="deleteNote('${t._id}')">Delete</button>
              </div>
          </div>
       </div>
 `;
- });
- }
+  });
+}
 
 
-
-noteForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  document.getElementById('saveButton').innerHTML = "Save";
-  const note = {
-    name: noteName.value,
-    description: noteDescription.value,
-  };
-
-  if (!updateStatus) {
-    ipcRenderer.send("new-note", note);
-  } else {
-    ipcRenderer.send("update-note", { ...note, idNoteToUpdate });
-  }
-  noteForm.reset();
+// IPC
+ipcRenderer.on("get-notes", (e, args) => {
+  const receivedNotes = JSON.parse(args);
+  notes = receivedNotes;
+  renderNotes(notes);
 });
 
 ipcRenderer.on("new-note-created", (e, arg) => {
@@ -76,13 +84,6 @@ ipcRenderer.on("new-note-created", (e, arg) => {
   renderNotes(notes);
 });
 
-ipcRenderer.send("get-notes");
-
-ipcRenderer.on("get-notes", (e, args) => {
-  const receivedNotes = JSON.parse(args);
-  notes = receivedNotes;
-  renderNotes(notes);
-});
 
 ipcRenderer.on("delete-note-success", (e, args) => {
   const deletedNote = JSON.parse(args);
@@ -108,14 +109,21 @@ ipcRenderer.on("update-note-success", (e, args) => {
 });
 
 
-function copyText() {
-  event.stopPropagation();
-  const body = document.getElementById('text-to-copy-body').innerText;
-  const title = document.getElementById('text-to-copy-title').innerText;
-  const note = `${title}\n\n${body}`;
+noteForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  document.getElementById('saveButton').innerHTML = "Save";
+  const note = {
+    name: noteName.value,
+    description: noteDescription.value,
+  };
 
-  navigator.clipboard.writeText(note).then(function() {
-  }).catch(function(err) {
-      console.error('Error copying text: ', err);
-  });
-}
+  if (!updateStatus) {
+    ipcRenderer.send("new-note", note);
+  } else {
+    ipcRenderer.send("update-note", { ...note, idNoteToUpdate });
+  }
+  noteForm.reset();
+});
+
+
+ipcRenderer.send("get-notes");

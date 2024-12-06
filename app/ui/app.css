@@ -4,13 +4,19 @@
   box-sizing: border-box;
 }
 
+li {
+  text-align: center;
+
+}
+
 body {
   color: #dfe6e9;
   background: #2f3640;
   padding: 10px;
 }
 
-input, textarea {
+input,
+textarea {
   display: block;
   width: 100%;
   padding: 10px;
@@ -40,7 +46,8 @@ input, textarea {
   transition: all 0.4s ease 0s;
 }
 
-.card > h4, p {
+.card>h4,
+p {
   padding: 7px;
 }
 
@@ -50,7 +57,7 @@ input, textarea {
 
 .btn-secondary {
   background: #c8d6e5;
-  color: #222f3e !important; 
+  color: #222f3e !important;
 }
 
 .btn:hover {

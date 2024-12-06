@@ -1,15 +1,24 @@
-.App{
+.App {
     background-color: rgb(0, 0, 0);
     color: rgb(255, 255, 255);
 }
 
-#noteForm{
+li {
+    margin-left: 10px;
+    margin-right: 10px;
+    text-align: center;
+}
+
+p {
+    text-align: start;
+}
+
+#noteForm {
     background-color: rgb(0, 0, 0);
     border: none;
 }
 
-
-#noteDescription{
+#noteDescription {
     border-radius: 5px;
     margin-bottom: 10px;
     background-color: rgb(69, 69, 69);
@@ -17,66 +26,96 @@
     border: none;
 }
 
-#noteName{
+#noteName {
     border-radius: 5px;
     margin-bottom: 10px;
     background-color: rgb(69, 69, 69);
     color: rgb(255, 255, 255);
-    border: 1px;
+    border: none;
 }
 
-#card{
+#noteName:focus,
+#noteDescription:focus {
+    outline: none;
+    border: none
+}
+
+/* #noteName:hover,
+#noteDescription:hover {
+    background-color: rgb(214, 214, 214);
+    color: black;
+} */
+
+
+#card {
     background-color: rgb(40, 40, 40);
     color: rgb(255, 255, 255);
     border-radius: 10px;
     border: none;
-    
+
 }
 
-#card:hover{
+#card:hover {
     background-color: rgb(77, 77, 77);
     cursor: pointer;
 }
 
 /* Card buttons */
 
-.btn.deleteButton{
-    background-color: rgb(209, 58, 58);
+.btn.deleteButton {
+    background-color: rgb(217, 86, 74);
     color: white;
     margin-right: 5px;
 }
-.btn.deleteButton:hover{
+
+.btn.deleteButton:hover {
     background-color: rgb(255, 0, 0);
     color: white;
     margin-right: 5px;
 }
-.btn.copyButton{
-    background-color: rgb(37, 223, 240);
+
+.btn.copyButton {
+    background-color: rgb(61, 207, 220);
     color: white;
     margin-right: 5px;
 }
-.btn.copyButton:hover{
-    background-color: rgb(38, 239, 115);
 
+.btn.copyButton:hover {
+    background-color: rgb(38, 239, 115);
     color: white;
     margin-right: 5px;
 }
 
 
 /* Save not buttons */
-#saveButton{  
+#saveButton {
     background-color: rgb(101, 97, 232);
     border-radius: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     border: none;
 }
 
-#saveButton:hover{
+#saveButton:hover {
     background-color: rgb(38, 239, 115);
     border: none;
 }
 
-.nav-link{
-    background-color: aquamarine;
+#nav-link {
+    padding: 5px;
+    border: 1px solid red;
+    padding: 5px;
 }
 
+.transparent {
+    color: transparent;
+}
+
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-link.active {
+    background-color: rgb(101, 97, 232) !important;
+    color: #ffffff !important;
+}

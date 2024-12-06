@@ -47,7 +47,6 @@ ipcMain.on("update-note", async (e, args) => {
   e.reply("update-note-success", JSON.stringify(updatedNote));
 });
 
-
 /*     TASKS       */
 ipcMain.on("new-task", async (e, arg) => {
   const newTask = new Task(arg);
@@ -69,25 +68,10 @@ ipcMain.on("delete-task", async (e, args) => {
 ipcMain.on("update-task", async (e, args) => {
   console.log(args);
   const updatedTask = await Task.findByIdAndUpdate(
-    args.idTaskToUpdate,
+    args.idTaskToDelete,
     { name: args.name },
     { new: true }
-  );
-  e.reply("update-task-success", JSON.stringify(updatedTask))
-});
-
-ipcMain.on("complete-task", async (e, id) => {
-  try {
-    const updatedTask = await Task.findByIdAndUpdate(
-      id,
-      { completed: true },
-      { new: true }
-    );
-    e.reply("complete-task-success", JSON.stringify(updatedTask));
-  } catch (err) {
-    console.error("Error marking task as complete:", err);
-  }
-});
-
+  )
+})
 
 module.exports = { createWindow };
