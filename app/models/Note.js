@@ -1,4 +1,5 @@
 const { model, Schema } = require("mongoose");
+const mongoose = require("mongoose");
 
 const Note = new Schema({
   name: {
@@ -9,6 +10,12 @@ const Note = new Schema({
     type: String,
     required: true,
   },
+
+  projectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Project",
+    default: null
+  }
 });
 
 module.exports = model("Note", Note);
