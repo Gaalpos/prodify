@@ -9,8 +9,6 @@ let updateStatus = false;
 let idNoteToUpdate = "";
 let notes = [];
 
-// FUNCTIONS
-
 function deleteNote(id) {
   event.stopPropagation();
   const response = confirm("Delete note?");

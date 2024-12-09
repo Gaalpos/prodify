@@ -55,19 +55,18 @@
                         New project
                     </button>
                 </form>
+                <p id="projectId"></p>
+
                 <div class="projectsContainer">
                     <div class="row d-flex" id="projectsList">
-                        <script src="../ui/projectManager.js"></script>
                     </div>
                     <h1>Completed</h1>
                     <div class="row d-flex" id="completedProjectsList">
-                        <script src="../ui/projectManager.js"></script>
                     </div>
                 </div>
             </div>
             <div class="col-sm-12 col-lg-4">
                 <h1>Notes</h1>
-                <p id="projectId"></p>
                 <form id="projectNoteForm" class="card">
                     <input class="textInput" type="text" id="projectNoteName" placeholder="Note Title">
                     <textarea id="projectNoteDescription" rows="3" placeholder="Note"></textarea>
@@ -75,10 +74,43 @@
                         New note
                     </button>
                 </form>
-                <div class="row d-flex" id="projectNotesList">
-                    <script src="../ui/projectManager.js"></script>
+                <div class="container text-center">
+                    <h1>Notes</h1>
+                    <div class="row d-flex" id="notesList">
+                    </div>
                 </div>
             </div>
+
+            <div class="col-sm-12 col-lg-4">
+                <h1>Tasks</h1>
+                <form id="taskForm" class="card">
+                    <input class="textInput" type="text" id="taskName" placeholder="Task">
+                    <button type="submit" class="btn btn-secondary" id="saveTask">
+                        Save
+                    </button>
+                </form>
+                <div class="container text-center col">
+                    <div class="album py-1 text-start">
+                        <div class="container text-center">
+                            <h1>To-Do</h1>
+                            <div class="row d-flex" id="tasksList">
+                            </div>
+                        </div>
+                        <div class="container text-center col">
+                            <h1>Completed</h1>
+                            <div class="row d-flex" id="completedTasksList">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="row d-flex" id="projectNotesList">
+
+            </div>
+        </div>
+        <script src="../ui/projectManager.js"></script>
+
 </body>
 
 </html>

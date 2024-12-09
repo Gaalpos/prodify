@@ -11,10 +11,10 @@ const ProjectNote = new Schema({
         required: true,
     },
     projectId: {
-        type: String,
-        required: true
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: "Project"
     }
-
 });
 
 module.exports = model("ProjectNote", ProjectNote);
