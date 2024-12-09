@@ -46,24 +46,20 @@ function editNote(id) {
 }
 
 
-
-
-
-
 function renderNotes(notes) {
   noteList.innerHTML = "";
   notes.map((t) => {
     noteList.innerHTML += `
-       <div class="col-12 col-sm-12 col-md-6 col-lg-6 mb-4" id="contenedor" onclick="editNote('${t._id}')">
-         <div class="card card-shadow-sm p-3" id="card">
-             <div class="card-body">
-                 <h2 >${t.name}</h2>
-                 <p>${t.description}</p>
-                 <button class="btn copyButton" onclick="copyText('${t._id}')">Copy</button>
-                 <button class="btn deleteButton"onclick="deleteNote('${t._id}')">Delete</button>
-             </div>
-         </div>
-      </div>
+     <div class="col-12 col-sm-12 col-md-6 col-lg-6 mb-4" id="contenedor" onclick="editNote('${t._id}')">
+       <div class="card card-shadow-sm p-3" id="card">
+         <div class="card-body">
+            <h2>${t.name}</h2>
+            <p>${t.description}</p>
+            <button class="btn copyButton" onclick="copyText('${t._id}')">Copy</button>
+            <button class="btn deleteButton" onclick="deleteNote('${t._id}')">Delete</button>
+          </div>
+       </div>
+     </div>
 `;
   });
 }
@@ -76,11 +72,9 @@ ipcRenderer.on("get-notes", (e, args) => {
   renderNotes(notes);
 });
 
-ipcRenderer.on("new-note-created", (e, arg) => {
-  console.log(arg);
-  const noteSaved = JSON.parse(arg);
+ipcRenderer.on("new-note-created", (e, args) => {
+  const noteSaved = JSON.parse(args);
   notes.push(noteSaved);
-  console.log(notes);
   renderNotes(notes);
 });
 

@@ -16,7 +16,10 @@ function deleteTask(id) {
     ipcRenderer.send("delete-task", id);
     taskName.value = '';
     console.log("deleted")
+    const audio = new Audio('../assets/mp3/yoshi.mp3');
+    audio.play();
   }
+
   return;
 }
 
@@ -94,6 +97,8 @@ ipcRenderer.on("delete-task-success", (e, args) => {
 
 function completeTask(id) {
   event.stopPropagation();
+  const audio = new Audio('../assets/mp3/coin.mp3');
+  audio.play();
   ipcRenderer.send("complete-task", id);
 }
 
@@ -105,6 +110,7 @@ ipcRenderer.on("complete-task-success", (e, args) => {
     }
     return t;
   });
+
   renderTasks(tasks);
 });
 

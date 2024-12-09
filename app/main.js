@@ -1,6 +1,7 @@
 const { BrowserWindow, ipcMain } = require("electron");
 const Note = require("./models/Note");
 const Task = require("./models/Task");
+const Project = require("./models/Project");
 const path = require('path');
 
 function createWindow() {
@@ -55,7 +56,7 @@ ipcMain.on("new-task", async (e, arg) => {
   e.reply("new-task-created", JSON.stringify(taskSaved));
 });
 
-ipcMain.on("get-tasks", async (e, arg) => {
+ipcMain.on("get-tasks", async (e, args) => {
   const tasks = await Task.find();
   e.reply("get-tasks", JSON.stringify(tasks));
 });
@@ -88,6 +89,28 @@ ipcMain.on("complete-task", async (e, id) => {
     console.error("Error marking task as complete:", err);
   }
 });
+
+
+// PROJECTS
+
+ipcMain.on("new-project", async (e, arg) => {
+  const newProject = new Project(arg);
+  const projectSaved = await newProject.save();
+  e.reply("new-project-created", JSON.stringify(projectSaved));
+});
+
+ipcMain.on("get-projects", async (e, arg) => {
+  const projects = await Project.find();
+  e.reply("get-projects", JSON.stringify(projects));
+});
+
+ipcMain.on("delete-project", async (e, args) => {
+  const projectDeleted = await Project.findByIdAndDelete(args);
+  e.reply("delete-project-success", JSON.stringify(projectDeleted));
+})
+
+
+// PROJECT NOTES
 
 
 module.exports = { createWindow };

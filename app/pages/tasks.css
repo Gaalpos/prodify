@@ -58,10 +58,9 @@ p {
 
 .task {
     background-color: rgb(32, 32, 32);
-    margin-bottom: 5px;
     margin-top: 5px;
-    padding: 5px;
     margin-bottom: 5px;
+    padding: 5px;
     border-radius: 10px;
 
 }

@@ -24,17 +24,27 @@ p {
 
 }
 
-#projectForm {
+#projectForm,
+#noteForm,
+#taskForm,
+#projectNoteForm {
     background-color: black;
 }
 
-#projectName {
+#projectName,
+#projectDescription,
+#noteDescription,
+#noteName,
+#taskName,
+#projectNoteName,
+#projectNoteDescription {
     border-radius: 5px;
     background-color: rgb(69, 69, 69);
     border: none;
     color: white;
     margin-bottom: 10px;
 }
+
 
 
 #deleteButton {
@@ -44,12 +54,18 @@ p {
 }
 
 
-#saveProject {
+#saveProject,
+#saveNote,
+#saveTask,
+#saveProjectNote {
     background-color: rgb(101, 97, 232);
     border-radius: 5px;
 }
 
-#saveProject:hover {
+#saveProject:hover,
+#saveTask:hover,
+#saveNote:hover,
+#saveProjectNote:hover {
     background-color: rgb(38, 239, 115);
 
 }
@@ -131,4 +147,8 @@ p {
 .nav-link.active {
     background-color: rgb(101, 97, 232) !important;
     color: #ffffff !important;
+}
+
+.projectsContainer {
+    margin-top: 10px;
 }

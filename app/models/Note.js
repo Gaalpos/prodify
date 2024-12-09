@@ -9,12 +9,6 @@ const Note = new Schema({
   description: {
     type: String,
     required: true,
-  },
-
-  projectId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Project",
-    default: null
   }
 });
 

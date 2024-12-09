@@ -47,26 +47,38 @@
     <div class="container text-center col">
         <div class="row ">
             <div class="col-sm-12 col-lg-4">
+                <h1>Projects</h1>
                 <form id="projectForm" class="card">
                     <input class="textInput" type="text" id="projectName" placeholder="Title">
+                    <input class="textInput" type="text" id="projectDescription" placeholder="Description">
                     <button type="submit" class="btn btn-secondary" id="saveProject">
                         New project
                     </button>
                 </form>
-            </div>
-        </div>
-
-        <div class="row ">
-            <div class="col-sm-12 col-lg-4">
-                <br>
-                <h1> Projects</h1>
-                <div class="row d-flex" id="projectsList">
-                    <script src="ui/projectsManager.js"></script>
+                <div class="projectsContainer">
+                    <div class="row d-flex" id="projectsList">
+                        <script src="../ui/projectManager.js"></script>
+                    </div>
+                    <h1>Completed</h1>
+                    <div class="row d-flex" id="completedProjectsList">
+                        <script src="../ui/projectManager.js"></script>
+                    </div>
                 </div>
             </div>
-        </div>
-
-    </div>
+            <div class="col-sm-12 col-lg-4">
+                <h1>Notes</h1>
+                <p id="projectId"></p>
+                <form id="projectNoteForm" class="card">
+                    <input class="textInput" type="text" id="projectNoteName" placeholder="Note Title">
+                    <textarea id="projectNoteDescription" rows="3" placeholder="Note"></textarea>
+                    <button type="submit" class="btn btn-secondary" id="saveProjectNote">
+                        New note
+                    </button>
+                </form>
+                <div class="row d-flex" id="projectNotesList">
+                    <script src="../ui/projectManager.js"></script>
+                </div>
+            </div>
 </body>
 
 </html>

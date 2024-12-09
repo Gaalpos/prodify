@@ -9,8 +9,6 @@ const Project = new Schema({
         type: String,
         required: false
     }
-
-
 })
 
 module.exports = model("Project", Project)
