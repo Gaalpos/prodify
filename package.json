@@ -1,0 +1,12 @@
+{
+  "name": "prodify",
+  "private": true,
+  "version": "1.8.1",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.3"
+  }
+}

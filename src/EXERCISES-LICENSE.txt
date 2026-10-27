@@ -1,0 +1,34 @@
+Exercise data in exercises.js comes from two sources.
+
+1. free-exercise-db - https://github.com/yuhonas/free-exercise-db - released into the public domain under the Unlicense:
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+
+2. wger Workout Manager - https://wger.de - exercise data licensed under Creative Commons Attribution-ShareAlike 4.0
+   (https://creativecommons.org/licenses/by-sa/4.0/). Adapted: names in English and Spanish, muscles, equipment; descriptions shortened.
+   Contributors credited by wger for the included exercises:
+   2dPREtEZP221u68Akf0JImv5L48, 3leh, 54str, 6LXBO, aahuja, abeworld, aboksz, abuono, admin, Aleid, AlucardEvil40, amaesc, amwang4, Anastasious, andikeller, Anon#2, anon1337, anto.kreegyr, Antsy6277, apeschel, arson, ataraxie67, Awlex, baldurmen, barry, bbayuwega, bbk, beagle, Behrooz, bel, BeLikeWater, benjamin.yildiz@proton.me, BePieToday, BFad07, bizyguy, bl0sh, Blablabla, bobbyprince89, Boertie, Bret Contreras, Brigade7938, brucem, burenl, cal.zabel, captive0592, carlos3c, Cerin, Cf, cgoob883, clafal, cleen, colundrum, cozyGalvinism, CptnFatbeard, Croak6728, cshep442, cybro, cynomops, daiben, damnlost, daniel.escada, Davidgj32, Deflation, delta@romeo, deusinvictus, Dexter, DiscoCop, djblitzd, donaddon, dookie1481, drthurlow, Dulive, ege, Epiphany8424, er0355, erikocobra, eriktrinkle, eufvksruh, evtimovgeorg, Expenses7000, ExRx, fabrice, FEFFO, fen, Fittness69, flanny, fletchgraham, flori, florian.bussmann, foguinho.peruca, Franpol, Friend7857, Gavru, geraldbaeck, GiglioRosso, GrosseHund, Happy, hektkaso, HexoctusEngineering, hpmbala@gmail.com, http://www.bodybuilding.com/, http://www.carinatum.com/, http://www.exrx.net/WeightExercises/Brachialis/DBC, http://www.realsimple.com/health/fitness-exercise/, hurr99, Iko, Imobard, Imported from swim plan, Insight, intelman, ISSACS, J120290,cerin, JackSparrow, James Mackay, Jarda, jayninja, jesusd, Jhonatan, jigglychipmunk, Joculari, JohnPreston, JuustoKakku, karly, karthikrrk, kbk, klabautermann, kmcalderwood, Konsumopfer, koreyhinton, krisbbb, kwrindy, lakerbeezel, lauroernesto, LEBRERO, lh1701, lhegedus, lion, lxmx, Lynn_McIntyre, m4k3r, M9, MaddieBeasley, magdy, Mahoney, Mamo2604, Manu, wikipedia, manuher89, marcelbader, Mariano_O, Marius, matpn, mbozi1, McMarcel13, meldun, Mens Fitness, Metin, Mike Mentzer, mike6426, Mikko Ruohola, minifigmaster125, MisterPinnacle, Moffi, mountain.potato, MrAlfaRobot, MrSteele, MU5H, nalhilal, Nallitnas, Nash, nate303303, nishant0712, notdefine, novadani, oboema, OGhTebfCxhexZXuf35mUxV9C--A, painDpice, Papazit, PaukOne, Paul@Chemistry, pera_perkan, Personal routine, personal use, Pete-E automation, Pete-E automation probe, philip, phpi, pjwirth, polloperro, powerade69, prevail90, probablyforging, pwiltrout, qoxivi, Raj, Rehab Hero, ricardodavidrd, RiccaBaro, richmr2174@gmail.com, ricwheatley, Robertcoop, robhoyt, roneydya, Rottekongen, SAH, schweezer, schwolfar, sebk, Settebello, sevae, Shiladree, shushu, sistab2, Skadi, sophialj, spacetowaste, sTiKyt, student1234, taylorbarbell, tdprice12, tekknokrat@gmx.de, tenebrizz, teus_ergaster, ThisGirl0819, Tierrasverdes, TimoteoG, tinman, tobias08, TobiasFalk, Torsten Linnecke, treder, tregga, Trix, trs1800, trzr23, tuckerm, tuninx, utkb, Vazco, vdrb, Vilhelmo, vince63, vkylamba, wakanda90, wger.de, wgerjhn, wgerpott, Whythebigpaws, WiNNiE, wintercyan, workout@rooven.anonaddy.me, xWan, yahoo.ivory, Yderkone, YYCfit, YYCfit / BFad07, zdelko

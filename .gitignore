@@ -1,0 +1,15 @@
+# dependencies and build output
+node_modules/
+src-tauri/target/
+dist/
+*.log
+# secrets: never commit signing keys or their passwords
+*.jks
+*.keystore
+keystore.properties
+key.properties
+.env*
+# editor / OS clutter
+.DS_Store
+.idea/
+.vscode/

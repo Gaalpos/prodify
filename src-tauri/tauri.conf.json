@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Prodify",
+  "version": "1.8.1",
+  "identifier": "io.prodify.app",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Prodify",
+        "width": 1200,
+        "height": 820,
+        "minWidth": 380,
+        "minHeight": 520,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "font-src": "'self'",
+        "img-src": "'self' data: blob: asset: http://asset.localhost https://covers.openlibrary.org https://*.archive.org https://static.tvmaze.com https://s4.anilist.co https://image.tmdb.org https://media.rawg.io https://raw.githubusercontent.com https://wger.de https://icons.duckduckgo.com https://somafm.com https://api.somafm.com",
+        "connect-src": "ipc: http://ipc.localhost https://openlibrary.org https://api.tvmaze.com https://graphql.anilist.co https://api.themoviedb.org https://api.rawg.io https://covers.openlibrary.org https://*.archive.org https://static.tvmaze.com https://s4.anilist.co https://image.tmdb.org https://media.rawg.io https://wger.de https://api.open-meteo.com https://geocoding-api.open-meteo.com https://api.somafm.com",
+        "frame-src": "'self' blob: asset: http://asset.localhost",
+        "media-src": "'self' blob: data: asset: http://asset.localhost https://cdn.freesound.org https://*.somafm.com"
+      },
+      "dangerousDisableAssetCspModification": [
+        "style-src"
+      ],
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$HOME/Prodify/attachments/**"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "deb"
+    ],
+    "category": "Productivity",
+    "shortDescription": "Notes, journal, tasks, projects and habits",
+    "longDescription": "Prodify keeps your notes, journal, reflection questions, tasks, projects and habits as plain Markdown files in a folder on your computer.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "section": "utils"
+      }
+    }
+  }
+}
