@@ -27,6 +27,14 @@ let WHO=false;try{WHO=USERS.length>1&&store.get('prodify.ask')!=='0'&&!sessionSt
    there; NEEDW lists files to rewrite (encryption turned on or off, or a file from another device in the other form). */
 const ACCK='prodify-account.md',CENC='PRODIFY-ENCRYPTED v1',CMAG=[80,82,68,69,78,67,49,10];
 let ACCT=null,DK=null,DKRAW=null,ACCREADY=true,RAW={},NEEDW=new Set(),BOOTRAW=null,LSRAW={};
+/* App storage (Settings → Data and backups) keeps the files in a database inside the app instead of the Markdown
+   folder. With encryption on there, file names are hidden too: each file is stored as "enc/<keyed hash of its name>"
+   and its real name travels inside the encrypted text (first line). DISKK maps a file to the name it's stored under. */
+const STORE_DB=!!(TAURI&&BOOT.storage==='db');let DISKK={},NHK=null;
+async function nameHash(k){if(!NHK){const d=await crypto.subtle.digest('SHA-256',new Uint8Array([...new TextEncoder().encode('prodify-names:'),...DKRAW]));NHK=await crypto.subtle.importKey('raw',d,{name:'HMAC',hash:'SHA-256'},false,['sign'])}
+ return [...new Uint8Array(await crypto.subtle.sign('HMAC',NHK,new TextEncoder().encode(k))).slice(0,16)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+const hideNames=k=>STORE_DB&&encOn()&&k!==ACCK;
+const diskKey=async k=>hideNames(k)?'enc/'+await nameHash(k):k;
 const u8b64=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)},b64u8=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const isEncT=t=>typeof t==='string'&&t.startsWith(CENC+'\n'),isEncB=u=>!!u&&u.length>8&&CMAG.every((x,i)=>u[i]===x);
 const aesKey=raw=>crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt','decrypt']);
@@ -40,7 +48,7 @@ async function encBytes(u){const x=await sealB(DK,u),o=new Uint8Array(8+x.length
 const decBytes=u=>openB(DK,u.subarray(8));
 const encOn=()=>!!(ACCT&&ACCT.enc&&DK);
 // What a file looks like on disk: encrypted when the account encrypts (never the account file itself).
-const encFile=(k,t)=>encOn()&&k!==ACCK?encText(t):t;
+const encFile=(k,t)=>encOn()&&k!==ACCK?encText(hideNames(k)?k+'\n'+t:t):t;
 function accParse(t){if(typeof t!=='string')return null;const g=k=>{const m=t.match(new RegExp('^'+k+':[ \\t]*(.*)$','m'));return m?m[1].trim():''};if(g('prodify-account')!=='1')return null;
  return{name:g('name'),enc:g('encrypted')==='true',iter:+g('iterations')||600000,salt:g('salt'),key:g('key'),riter:+g('recovery-iterations')||100000,rsalt:g('recovery-salt'),rkey:g('recovery-key'),created:g('created')}}
 const accText=a=>`---\nprodify-account: 1\nname: ${String(a.name||'').replace(/\s+/g,' ').trim()}\nencrypted: ${!!a.enc}\nkdf: PBKDF2-SHA256, AES-256-GCM\niterations: ${a.iter}\nsalt: ${a.salt}\nkey: ${a.key}\nrecovery-iterations: ${a.riter}\nrecovery-salt: ${a.rsalt}\nrecovery-key: ${a.rkey}\ncreated: ${a.created}\n---\n# Prodify account\n\nThis file lets Prodify open your data. It holds your account name and your data key, locked with your password and with your recovery key (neither is stored here). Keep it in this folder and in your backups: without it ${a.enc?'your encrypted files can’t be opened':'Prodify won’t ask for your password'}.\n`;
@@ -65,11 +73,13 @@ DISK={...FS};RAW={...FS};ACCT=accParse(FS[ACCK]);
 if(ACCT){ACCREADY=false;BOOTRAW={...FS};FS={[ACCK]:FS[ACCK]};DISK={...FS}}
 // Only files that changed since the last save are written; files removed from FS are deleted.
 const save=()=>{if(LOCKED||!ACCREADY)return;
- queue(async()=>{const plain={},remove=Object.keys(DISK).filter(k=>!(k in FS));for(const k in FS)if(FS[k]!==DISK[k]||NEEDW.has(k))plain[k]=FS[k];
-  if(!remove.length&&!Object.keys(plain).length)return;
-  const write={};for(const k in plain)write[k]=await encFile(k,plain[k]);
+ queue(async()=>{const plain={},gone=Object.keys(DISK).filter(k=>!(k in FS));for(const k in FS)if(FS[k]!==DISK[k]||NEEDW.has(k))plain[k]=FS[k];
+  if(!gone.length&&!Object.keys(plain).length)return;
+  // written under the name it's stored as; a file whose stored name changes (names hidden or shown) loses its old copy
+  const write={},remove=gone.map(k=>DISKK[k]||k),dks={};
+  for(const k in plain){const dk=await diskKey(k);dks[k]=dk;write[dk]=await encFile(k,plain[k]);if(DISKK[k]&&DISKK[k]!==dk)remove.push(DISKK[k])}
   if(TAURI)await TAURI.invoke('sync_files',{write,remove});else{remove.forEach(k=>delete LSRAW[k]);Object.assign(LSRAW,write);localStorage.setItem(K+USUF,JSON.stringify(LSRAW))}
-  remove.forEach(k=>{delete DISK[k];delete RAW[k]});Object.assign(DISK,plain);Object.assign(RAW,write);Object.keys(plain).forEach(k=>NEEDW.delete(k));if(typeof mirSoon==='function')mirSoon()},'your files')};
+  gone.forEach(k=>{delete DISK[k];delete RAW[k];delete DISKK[k]});Object.assign(DISK,plain);for(const k in plain){RAW[k]=write[dks[k]];DISKK[k]=dks[k];NEEDW.delete(k)}if(typeof mirSoon==='function')mirSoon()},'your files')};
 const HERE=TAURI?'in your Prodify folder':'in this browser';
 const DEF={searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
 let CFG={...DEF};
@@ -289,7 +299,7 @@ const attWrite=(name,u)=>TAURI?TAURI.invoke('save_attachment',{name,data:u8b64(u
 async function attPlain(name){const u=await attRead(name);return u&&isEncB(u)?decBytes(u):u}
 const saveAtt=async(name,blob)=>encOn()?attWrite(name,await encBytes(new Uint8Array(await blob.arrayBuffer()))):TAURI?TAURI.invoke('save_attachment',{name,data:await blob64(blob)}):IDB.put(name,blob);
 // With an account, attachments may be encrypted, so they're read, decrypted and shown from memory.
-const attURL=name=>ATTURL[name]?Promise.resolve(ATTURL[name]):ACCT?attPlain(name).then(u=>u?(ATTURL[name]=URL.createObjectURL(new Blob([u],{type:attMime(name)}))):'').catch(()=>''):TAURI?Promise.resolve(ATTURL[name]=TAURI.convertFileSrc((BOOT.dir||'')+'/attachments/'+name)):IDB.get(name).then(b=>b?(ATTURL[name]=URL.createObjectURL(b)):'');
+const attURL=name=>ATTURL[name]?Promise.resolve(ATTURL[name]):ACCT||STORE_DB?attPlain(name).then(u=>u?(ATTURL[name]=URL.createObjectURL(new Blob([u],{type:attMime(name)}))):'').catch(()=>''):TAURI?Promise.resolve(ATTURL[name]=TAURI.convertFileSrc((BOOT.dir||'')+'/attachments/'+name)):IDB.get(name).then(b=>b?(ATTURL[name]=URL.createObjectURL(b)):'');
 // Fills in <img data-att> after each render (file paths in the app, IndexedDB blobs in a browser).
 /* Storage cards as a masonry grid: rows are 4 px tall and each card spans as many as its height needs, so cards of
    different heights pack tightly while keeping their left-to-right order. Cards re-measure when an image loads or the
@@ -1043,7 +1053,7 @@ const SETS=()=>[
  ['Collections fields','metadata properties platform downloaded store device netflix steam fields per type collections',colFieldSettings],
  ['Collections API keys','tmdb rawg movies games books series anime key',colSettings],
  ['Commands','slash / shortcuts keywords words note task event project',cmdSettings],
- ['Storage folder','files location directory data save path disk vault',storageBody],
+ ['Storage folder','files location directory data save path disk vault app storage database markdown sqlite private inside',()=>(STORE_DB?'':storageBody())+storeModeBody(),'raw'],
  ['Weather city','weather city location town forecast temperature home card time clock',()=>wxSettings()],
  ['Your name','greeting',()=>`<input id="sname" value="${esc(CFG.name)}" placeholder="Optional" style="max-width:260px">`],
  ['Daily reflection question','journal prompt home',()=>onOff('prompts')],
@@ -1728,9 +1738,13 @@ const lockOn=()=>!!(ACCT||(CFG.lock&&CFG.lock.hash)),lockIdleMin=()=>ACCT?+CFG.a
 /* Account actions. The first unlock decrypts every file into FS (accLoad); later unlocks (after Lock now or idle) only
    check the password, since the data key is still in memory. */
 let lockRec=false,ACCUI=null,ACCRK='',accBusy=false,accEncOn=true,accViaRec=false;
-async function accLoad(raw){const plain={},bad=[];for(const k in raw){const r=raw[k];if(isEncT(r)){try{plain[k]=await decText(r)}catch(e){bad.push(k)}}else plain[k]=r}
- for(const k in FS)delete FS[k];Object.assign(FS,plain);for(const k in DISK)delete DISK[k];Object.assign(DISK,plain);RAW={...raw};
- NEEDW=new Set(Object.keys(plain).filter(k=>k!==ACCK&&isEncT(raw[k])!==!!ACCT.enc));ACCREADY=true;BOOTRAW=null;
+async function accLoad(raw){const plain={},bad=[],r2={};DISKK={};NHK=null;
+ for(const dk in raw){const r=raw[dk];let k=dk,t=r;
+  if(isEncT(r)){try{t=await decText(r)}catch(e){bad.push(dk);continue}if(dk.startsWith('enc/')){const i=t.indexOf('\n');k=t.slice(0,i);t=t.slice(i+1)}}
+  plain[k]=t;r2[k]=r;DISKK[k]=dk}
+ for(const k in FS)delete FS[k];Object.assign(FS,plain);for(const k in DISK)delete DISK[k];Object.assign(DISK,plain);RAW=r2;
+ // rewritten when stored the wrong way for the account: encrypted or not, and (in app storage) name hidden or not
+ NEEDW=new Set(Object.keys(plain).filter(k=>k!==ACCK&&(isEncT(r2[k])!==!!ACCT.enc||(STORE_DB&&DISKK[k].startsWith('enc/')!==!!ACCT.enc))));ACCREADY=true;BOOTRAW=null;
  if(bad.length)toast(`${bad.length} file${bad.length===1?'':'s'} couldn’t be decrypted and ${bad.length===1?'was':'were'} left as ${bad.length===1?'it is':'they are'}`)}
 async function accUnlock(secret,rec){const k=await accKey(secret,rec);if(!k)return false;
  if(!ACCREADY){DKRAW=k;DK=await aesKey(k);await accLoad(BOOTRAW);accAfterLoad()}return true}
@@ -1745,7 +1759,7 @@ async function accConvertExtra(on){let n=0;
  return n}
 // Turns encryption on or off: every file is rewritten in the new form, then attachments and backups.
 async function accSetEnc(on){ACCT.enc=on;FS[ACCK]=accText(ACCT);Object.keys(FS).forEach(k=>{if(k!==ACCK)NEEDW.add(k)});save();await SQ;await accConvertExtra(on);if(typeof mirReset==='function')mirReset()}
-async function accCreate(name,pw,enc){DKRAW=crypto.getRandomValues(new Uint8Array(32));DK=await aesKey(DKRAW);const rk=recNew(),a={name,enc:false,iter:600000,riter:100000,created:TD()};
+async function accCreate(name,pw,enc){DKRAW=crypto.getRandomValues(new Uint8Array(32));NHK=null;DK=await aesKey(DKRAW);const rk=recNew(),a={name,enc:false,iter:600000,riter:100000,created:TD()};
  await accSeal(a,pw,rk);ACCT=a;ACCREADY=true;FS[ACCK]=accText(a);delete CFG.lock;saveCfg();save();if(enc)await accSetEnc(true);return rk}
 async function accRemove(){if(ACCT.enc)await accSetEnc(false);delete FS[ACCK];save();await SQ;ACCT=null;DK=null;DKRAW=null;NEEDW.clear();if(typeof mirReset==='function')mirReset()}
 const userSave=()=>store.set('prodify.users',JSON.stringify(USERS));
@@ -2350,7 +2364,7 @@ async function stAddFiles(kind,files){let n=0;const l=stRead(kind),added=[];
   catch(e){toast('Could not save '+(f.name||'that file'))}}
  if(n){stWrite(kind,l);save();render();toast(`${n} ${kind==='images'?'image':'PDF'}${n===1?'':'s'} added`)}return added}
 const stPick=kind=>{const f=document.createElement('input');f.type='file';f.accept=kind==='images'?'image/*':'application/pdf,.pdf';f.multiple=true;f.onchange=()=>stAddFiles(kind,[...f.files]);f.click()};
-const stOpenPdf=att=>TAURI&&ACCT?attRead(att).then(async u=>isEncB(u)?TAURI.invoke('open_temp_file',{name:att,data:u8b64(await decBytes(u))}):TAURI.invoke('open_attachment',{name:att})).catch(e=>toast('Could not open the PDF: '+e)):TAURI?TAURI.invoke('open_attachment',{name:att}).catch(e=>toast('Could not open the PDF: '+e)):attURL(att).then(u=>u&&window.open(u,'_blank','noopener'));
+const stOpenPdf=att=>TAURI&&(ACCT||STORE_DB)?attRead(att).then(async u=>isEncB(u)?TAURI.invoke('open_temp_file',{name:att,data:u8b64(await decBytes(u))}):TAURI.invoke('open_attachment',{name:att})).catch(e=>toast('Could not open the PDF: '+e)):TAURI?TAURI.invoke('open_attachment',{name:att}).catch(e=>toast('Could not open the PDF: '+e)):attURL(att).then(u=>u&&window.open(u,'_blank','noopener'));
 // Inline rename (from the right-click menu): a bar above the list with the item's title.
 const stRenBar=()=>{if(!stRen)return '';const[k,i]=stRen.split(':'),x=stRead(k)[+i];if(!x){stRen=null;return ''}
  return `<div class="row strename"><span class="meta">Rename</span><input id="stren" value="${esc(x.title)}" autocomplete="off" aria-label="New name"><button class="b tick" data-act="stRenSave" aria-label="Save name" title="Save">${lineIco('M5 12.5l4.5 4.5L19 7')}</button><button class="g" data-act="stRenCancel">Cancel</button></div>`};
@@ -2764,7 +2778,7 @@ const mirKind=k=>{for(const[id,,t]of MIRC)if(t&&t(k))return id;return 'other'};
 let MIRM={},MIRA=new Set(),mirTimer=null,mirBusy=false,mirErr='',mirLast=0;
 function mirSoon(ms){if(!TAURI||!CFG.mirDir)return;clearTimeout(mirTimer);mirTimer=setTimeout(mirRun,ms==null?2000:ms)}
 async function mirRun(){if(!TAURI||!CFG.mirDir||LOCKED||!ACCREADY)return;if(mirBusy){mirSoon();return}mirBusy=true;const dir=CFG.mirDir;
- try{const write={},plain={};for(const k in FS)if(FS[k]!==MIRM[k]&&(k===ACCK||mirOn(mirKind(k)))){if(encOn()&&(DISK[k]!==FS[k]||NEEDW.has(k)||RAW[k]===undefined))continue;write[k]=encOn()?RAW[k]:FS[k];plain[k]=FS[k]}
+ try{const write={},plain={};for(const k in FS)if(FS[k]!==MIRM[k]&&(k===ACCK||mirOn(mirKind(k)))){write[k]=encOn()&&k!==ACCK?await encText(FS[k]):FS[k];plain[k]=FS[k]}
   const att=[];if(mirOn('att')){const rx=/attachments\/([^)\s"'<>]+)/g;for(const k in FS){let m;rx.lastIndex=0;while((m=rx.exec(FS[k])))if(!MIRA.has(m[1]))att.push(decodeURIComponent(m[1]))}}
   const names=[...new Set(att)];if(!Object.keys(write).length&&!names.length){mirBusy=false;return}
   await TAURI.invoke('mirror_files',{dir,write,attachments:names});if(CFG.mirDir!==dir)return;
@@ -2778,7 +2792,20 @@ ${CFG.mirDir?`<p class="path">${esc(CFG.mirDir)}</p>${mirErr?`<p class="meta mir
 <div class="row" style="margin:8px 0 14px"><button class="g" data-act="mirPick">Change folder…</button><button class="g" data-act="mirNow">Copy now</button><button class="x" data-act="mirOff">Stop backing up</button></div>
 <p class="meta" style="margin:0 0 6px">What to copy</p><div class="mirwhat">${MIRC.map(([id,l])=>swRow(l,'mir:'+id,mirOn(id))).join('')}</div>`
  :`<div class="row" style="margin:0"><button class="g" data-act="mirPick">Choose backup folder…</button></div>`}</section>`;
-const storageSection=()=>`<section><h2>Storage</h2>${storageBody()}</section>${mirSection()}`;
+// Where the data lives: the Markdown folder (the default) or app storage, a private database inside Prodify.
+let storeBusy=false;
+const storeModeBody=()=>!TAURI?'':`${L('Where your data is kept')}<div class="pseg storeseg" role="group" aria-label="Where your data is kept"><button class="${STORE_DB?'':'on'}" data-act="${STORE_DB?'storeMd':''}" aria-pressed="${!STORE_DB}" ${storeBusy?'disabled':''}>Markdown folder</button><button class="${STORE_DB?'on':''}" data-act="${STORE_DB?'':'storeDb'}" aria-pressed="${STORE_DB}" ${storeBusy?'disabled':''}>App storage</button></div>
+<p class="meta" style="margin:6px 0 0">${STORE_DB?'Your notes, journal, tasks, photos and backups are in a private database inside Prodify. Other apps can’t open them'+(encOn()?', and with encryption on even their names are hidden':'')+'. Switching back writes them out as Markdown files again.':'Your data is plain Markdown files that other apps (Obsidian, any editor, Syncthing) can open. App storage keeps everything in a private database inside Prodify instead'+(ACCT&&ACCT.enc?', with even file names encrypted':'')+'.'}</p>`;
+const storageSection=()=>`<section><h2>Storage</h2>${STORE_DB?'':storageBody()}${storeModeBody()}</section>${mirSection()}`;
+async function storeSwitch(to){const db=to==='db',ok=await askConfirm(db?{title:'Keep your data inside Prodify?',text:'Everything in your folder is copied into a private database inside the app. Your folder is left as it is, as a copy, but Prodify stops using it. You can switch back at any time.',ok:'Move into the app'}
+  :{title:'Go back to the Markdown folder?',text:`Your data is written out as Markdown files in ${BOOT.dir}. Files already there from before are moved into a hidden .prodify-old folder, not deleted.`,ok:'Write the files'});
+ if(!ok)return;storeBusy=true;render();
+ try{flushNote();save();await SQ;let files=null;
+  if(!db){files={};for(const k in FS)files[k]=encOn()&&k!==ACCK?await encText(FS[k]):FS[k]}
+  const r=await TAURI.invoke('storage_switch',{mode:to,files});
+  toast(db?`Moved ${r.files} file${r.files===1?'':'s'} into the app · restarting…`:`Wrote ${r.files} file${r.files===1?'':'s'} to the folder · restarting…`);
+  try{sessionStorage.setItem('prodify.switched','1')}catch(e){}setTimeout(()=>location.reload(),900)}
+ catch(e){storeBusy=false;render();fail('Could not switch storage: '+e)}}
 async function switchFolder(copy){const path=pendDir;if(!path)return;if(path===BOOT.dir){pendDir=null;render();toast('That is already the current folder');return}
  dirBusy=true;render();flushNote();
  try{await SQ;const r=await TAURI.invoke('set_data_dir',{path,copy});
@@ -2801,7 +2828,7 @@ const setSearch=()=>{const w=hWords(setQ),hits=SETS().filter(setOk).filter(x=>{c
 let SETG=null;
 const SETGROUPS=[['look','Appearance','palette','🎨',['Appearance'],'Theme, colors, fonts, sidebar and page width'],['general','General','gear','⚙️',['General','Calendar and time'],'Name, language, weather, time format and calendar'],
  ['sections','Sections and Home','squares-four','▦',['Sections','Home cards'],'Turn sections on or off, icons and Home cards'],['content','Notes, journal and more','note','📝',['Notes','Journal','Reminders','Collections'],'Notes, journal, reminders and collections'],
- ['account','Account and users','user-circle','👤',['@acc','Privacy','Users'],'Password, encryption and other users'],['data','Data and backups','database','💾',['Storage','Backup folder','Backups','Reset'],'Where your files live, backups and reset'],
+ ['account','Account and data','user-circle','👤',['@acc','Privacy','Users','Storage','Backup folder','Backups','Reset'],'Password, encryption, users, where your data lives, backups and reset'],
  ['tools','Integrations and commands','plug','🔌',['Integrations','Commands'],'AI, connected services and custom commands']];
 function setSplit(){const t=document.createElement('template'),by={};t.innerHTML=V.settingsAll();
  [...t.content.children].forEach(el=>{const h=((el.querySelector('h2')||{}).textContent||'').trim(),key=el.classList&&el.classList.contains('accsec')?'@acc':h,g=(SETGROUPS.find(x=>x[4].includes(key))||SETGROUPS[1])[0];el._k=key;(by[g]=by[g]||[]).push(el)});
@@ -3760,6 +3787,8 @@ else if(a==='bkNow'){backupNow();return}
 else if(a==='bkRestore'){const n=b.dataset.val;if(armed!=='bk:'+n){armed='bk:'+n;render();return}armed=null;backupRestore(n);return}
 else if(a==='kbOpen'){KSH=true;kbShow();return}
 else if(a==='kbClose'){KSH=false;kbShow();return}
+else if(a==='storeDb'){storeSwitch('db');return}
+else if(a==='storeMd'){storeSwitch('md');return}
 else if(a==='setGroup'){SETG=b.dataset.v||null;setQ='';window.scrollTo(0,0)}
 else if(a==='userGo'){userSwitch(b.dataset.v);return}
 else if(a==='userNew'){UADD={name:'',dir:''};pendingFocus='#uname'}
@@ -4120,7 +4149,7 @@ async function projDel(id){const p=getP(id);if(!FS['projects/'+id+'.md'])return;
 const ctxHTML=()=>ctxK==='navbar'?navbarCtx():ctxK.startsWith('pj:')?projCtx():ctxK.startsWith('bi:')?hbCtx():ctxK.startsWith('hc:')?homeCtx():ctxK.startsWith('task:')?taskCtx():ctxK.startsWith('st:')?stCtx():ctxK.startsWith('cat:')?catCtx():ctxK.startsWith('nav:')?navCtx():ctxK.startsWith('col:')?colCtx():ctxK.startsWith('list:')?(l=>`<button role="menuitem" data-ctx="ledit">Edit details</button><button role="menuitem" data-ctx="lpin">${l.pinned==='true'?'Unpin':'Pin'}</button>${SMART.includes(l.id)?'':`<button role="menuitem" class="danger" data-ctx="ldel">${ctxArm?'Click again to delete':'Delete list'}</button>`}`)(getList(ctxK.slice(5))):`<button role="menuitem" data-ctx="pin">${isPinned(ctxK)?'Unpin':'Pin'}</button><button role="menuitem" data-ctx="arch">${isArch(ctxK)?'Unarchive':'Archive'}</button><button role="menuitem" class="danger" data-ctx="del">${trashable(ctxK)?'Move to Trash…':'Delete…'}</button>`;
 // Saves a copy of a Storage image or PDF, named after its title (the desktop app asks where to save it).
 async function stDownload(x){const ext=(x.att.match(/\.[a-z0-9]+$/i)||[''])[0],name=((x.title||'').replace(/[\\/:*?"<>|]+/g,' ').trim()||'file')+ext;
- try{if(TAURI&&ACCT){const u=await attPlain(x.att);if(u&&await TAURI.invoke('save_download',{name,data:u8b64(u)}))toast('Saved '+name);return}if(TAURI){if(await TAURI.invoke('export_attachment',{name:x.att,saveAs:name}))toast('Saved '+name);return}
+ try{if(TAURI&&(ACCT||STORE_DB)){const u=await attPlain(x.att);if(u&&await TAURI.invoke('save_download',{name,data:u8b64(u)}))toast('Saved '+name);return}if(TAURI){if(await TAURI.invoke('export_attachment',{name:x.att,saveAs:name}))toast('Saved '+name);return}
   const u=await attPlain(x.att);if(!u){toast('That file is missing');return}await dl(name,new Blob([u],{type:attMime(x.att)}))}catch(e){if(e&&e.code==='declined')return;toast('Could not save: '+(e.message||e))}}
 function stCtxAct(id,a){const[k,i]=id.split(':'),l=stRead(k),x=l[+i];if(!x){closeCtx();return}
  if(a==='stdel'){stConfirmDel(k,+i);return}
@@ -4462,7 +4491,7 @@ function syncApply(disk){let changed=false,merged=0;const open=ND&&ND.k,col=CD&&
  if(merged)toast(merged===1?'Merged a change from another device':`Merged ${merged} changes from another device`);
  return changed}
 let syncBusy=false;
-function syncPoll(){if(!TAURI||LOCKED||PWLOCK||!ACCREADY||syncBusy||document.hidden||drg)return;syncBusy=true;
+function syncPoll(){if(!TAURI||STORE_DB||LOCKED||PWLOCK||!ACCREADY||syncBusy||document.hidden||drg)return;syncBusy=true;
  // runs in the save queue, so it never reads the folder halfway through one of our own writes
  queue(async()=>{try{const b=await TAURI.invoke('load_all');if(syncApply(await rawToPlain(b.files||{}))){save();mirSoon();rerenderKeep()}}finally{syncBusy=false}},'changes from other devices')}
 setInterval(syncPoll,3000);

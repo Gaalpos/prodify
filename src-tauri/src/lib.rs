@@ -3,8 +3,10 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::Engine;
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
@@ -111,22 +113,134 @@ fn read_settings(path: &Path) -> Result<BTreeMap<String, String>, String> {
     serde_json::from_str(&text).map_err(|e| format!("{} is damaged ({e})", path.display()))
 }
 
+/* ---------- app storage (SQLite) ----------
+   Settings → Data and backups can keep everything in a private database instead of the Markdown folder: the same
+   files (key → text, which the app may encrypt, names included), attachments as blobs, and the automatic backups.
+   Each data folder gets its own database in the app's data directory (so every user keeps their own), and
+   storage.json in the config directory lists the folders that use one. The commands below keep working the same in
+   both modes, so the app only needs to know which mode is on. */
+fn es(e: rusqlite::Error) -> String {
+    e.to_string()
+}
+
+fn storage_file(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join("storage.json"))
+}
+
+fn storage_modes(app: &AppHandle) -> Result<BTreeMap<String, String>, String> {
+    read_settings(&storage_file(app)?)
+}
+
+fn storage_save(app: &AppHandle, modes: &BTreeMap<String, String>) -> Result<(), String> {
+    let text = serde_json::to_string_pretty(modes).map_err(|e| e.to_string())?;
+    write_atomic(&storage_file(app)?, text.as_bytes())
+}
+
+/// FNV-1a: a stable hash of the folder path for the database's file name.
+fn fnv(s: &str) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for b in s.bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
+}
+
+fn db_file(app: &AppHandle, root: &Path) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("databases");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join(format!("prodify-{:016x}.db", fnv(&root.to_string_lossy()))))
+}
+
+/// The database of the current folder when it uses app storage; None for the Markdown folder.
+fn db_for(app: &AppHandle) -> Result<Option<PathBuf>, String> {
+    let root = files_root(app)?;
+    let key = root.to_string_lossy().into_owned();
+    let on = storage_modes(app)?.get(&key).is_some_and(|m| m.as_str() == "db");
+    if on {
+        Ok(Some(db_file(app, &root)?))
+    } else {
+        Ok(None)
+    }
+}
+
+static DB: Mutex<Option<(PathBuf, Connection)>> = Mutex::new(None);
+
+/// Runs `f` on the open database at `path`, opening (and creating) it first if needed.
+fn with_db<T>(path: &Path, f: impl FnOnce(&mut Connection) -> Result<T, String>) -> Result<T, String> {
+    let mut guard = DB.lock().map_err(|e| e.to_string())?;
+    if guard.as_ref().map(|(p, _)| p.as_path() != path).unwrap_or(true) {
+        let c = Connection::open(path).map_err(es)?;
+        c.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             PRAGMA synchronous = NORMAL;
+             CREATE TABLE IF NOT EXISTS files (key TEXT PRIMARY KEY, body TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS attachments (name TEXT PRIMARY KEY, data BLOB NOT NULL);
+             CREATE TABLE IF NOT EXISTS backups (name TEXT PRIMARY KEY, data TEXT NOT NULL);",
+        )
+        .map_err(es)?;
+        *guard = Some((path.to_path_buf(), c));
+    }
+    let (_, c) = guard.as_mut().ok_or("The database isn't open")?;
+    f(c)
+}
+
+/// Keys in the database can be any text the app uses (encrypted names look like "enc/<hash>").
+fn db_key_ok(key: &str) -> bool {
+    !key.is_empty() && key.len() < 4096 && !key.contains('\0')
+}
+
+fn db_attachment(path: &Path, name: &str) -> Result<Option<Vec<u8>>, String> {
+    with_db(path, |c| {
+        c.query_row("SELECT data FROM attachments WHERE name = ?1", params![name], |r| r.get::<_, Vec<u8>>(0))
+            .optional()
+            .map_err(es)
+    })
+}
+
+fn db_put_attachment(path: &Path, name: &str, bytes: &[u8]) -> Result<(), String> {
+    with_db(path, |c| {
+        c.execute("INSERT OR REPLACE INTO attachments (name, data) VALUES (?1, ?2)", params![name, bytes])
+            .map(|_| ())
+            .map_err(es)
+    })
+}
+
 #[derive(Serialize)]
 struct Boot {
     dir: String,
     default_dir: String,
     files: BTreeMap<String, String>,
     kv: BTreeMap<String, String>,
+    /// "md" for the Markdown folder, "db" for app storage.
+    storage: String,
 }
 
 #[tauri::command]
 async fn load_all(app: AppHandle) -> Result<Boot, String> {
     let root = files_root(&app)?;
+    let db = db_for(&app)?;
     let mut files = BTreeMap::new();
-    walk(&root, &root, &mut files)?;
+    match &db {
+        Some(path) => with_db(path, |c| {
+            let mut st = c.prepare("SELECT key, body FROM files").map_err(es)?;
+            let rows = st
+                .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+                .map_err(es)?;
+            for row in rows {
+                let (k, v) = row.map_err(es)?;
+                files.insert(k, v);
+            }
+            Ok(())
+        })?,
+        None => walk(&root, &root, &mut files)?,
+    }
     let kv = read_settings(&settings_path(&app)?)?;
     let default_dir = default_root(&app)?.to_string_lossy().into_owned();
-    Ok(Boot { dir: root.to_string_lossy().into_owned(), default_dir, files, kv })
+    let storage = if db.is_some() { "db" } else { "md" }.to_string();
+    Ok(Boot { dir: root.to_string_lossy().into_owned(), default_dir, files, kv, storage })
 }
 
 /// Applies a batch of changes: writes changed files, deletes removed ones,
@@ -137,6 +251,21 @@ async fn sync_files(
     write: BTreeMap<String, String>,
     remove: Vec<String>,
 ) -> Result<(), String> {
+    if let Some(path) = db_for(&app)? {
+        if let Some(bad) = write.keys().chain(remove.iter()).find(|k| !db_key_ok(k)) {
+            return Err(format!("Refusing to use file name {bad:?}"));
+        }
+        return with_db(&path, |c| {
+            let tx = c.transaction().map_err(es)?;
+            for (k, v) in &write {
+                tx.execute("INSERT OR REPLACE INTO files (key, body) VALUES (?1, ?2)", params![k, v]).map_err(es)?;
+            }
+            for k in &remove {
+                tx.execute("DELETE FROM files WHERE key = ?1", params![k]).map_err(es)?;
+            }
+            tx.commit().map_err(es)
+        });
+    }
     let root = files_root(&app)?;
     let writes = write
         .iter()
@@ -213,6 +342,9 @@ async fn save_attachment(app: AppHandle, name: String, data: String) -> Result<(
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(data)
         .map_err(|e| e.to_string())?;
+    if let Some(path) = db_for(&app)? {
+        return db_put_attachment(&path, &name, &bytes);
+    }
     let dir = files_root(&app)?.join("attachments");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     write_atomic(&dir.join(name), &bytes)
@@ -233,6 +365,7 @@ async fn download_attachment(app: AppHandle, url: String, base: String) -> Resul
         return Err(format!("Refusing to use attachment name {base:?}"));
     }
     let dir = files_root(&app)?.join("attachments");
+    let db = db_for(&app)?;
     tauri::async_runtime::spawn_blocking(move || {
         const MAX: u64 = 20 * 1024 * 1024;
         let resp = ureq::get(&url)
@@ -254,8 +387,12 @@ async fn download_attachment(app: AppHandle, url: String, base: String) -> Resul
         if bytes.len() as u64 > MAX {
             return Err("The image is too large".into());
         }
-        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let name = format!("{base}.{ext}");
+        if let Some(path) = &db {
+            db_put_attachment(path, &name, &bytes)?;
+            return Ok(name);
+        }
+        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         write_atomic(&dir.join(&name), &bytes)?;
         Ok(name)
     })
@@ -274,8 +411,12 @@ async fn export_attachment(app: AppHandle, name: String, save_as: String) -> Res
     if !ok {
         return Err(format!("Refusing to export attachment {name:?}"));
     }
+    let stored = match db_for(&app)? {
+        Some(path) => Some(db_attachment(&path, &name)?.ok_or("That file is missing from attachments")?),
+        None => None,
+    };
     let src = files_root(&app)?.join("attachments").join(&name);
-    if !src.is_file() {
+    if stored.is_none() && !src.is_file() {
         return Err("That file is missing from attachments".into());
     }
     let mut dialog = app.dialog().file().set_title("Save file").set_file_name(&save_as);
@@ -286,7 +427,12 @@ async fn export_attachment(app: AppHandle, name: String, save_as: String) -> Res
         return Ok(false);
     };
     let path = file.into_path().map_err(|e| e.to_string())?;
-    fs::copy(&src, &path).map_err(|e| e.to_string())?;
+    match stored {
+        Some(bytes) => write_atomic(&path, &bytes)?,
+        None => {
+            fs::copy(&src, &path).map_err(|e| e.to_string())?;
+        }
+    }
     Ok(true)
 }
 
@@ -304,13 +450,23 @@ async fn read_attachment(app: AppHandle, name: String) -> Result<String, String>
     if !attachment_name_ok(&name) {
         return Err(format!("Refusing to read attachment {name:?}"));
     }
-    let bytes = fs::read(files_root(&app)?.join("attachments").join(&name)).map_err(|e| e.to_string())?;
+    let bytes = match db_for(&app)? {
+        Some(path) => db_attachment(&path, &name)?.ok_or("That file is missing from attachments")?,
+        None => fs::read(files_root(&app)?.join("attachments").join(&name)).map_err(|e| e.to_string())?,
+    };
     Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
 }
 
 /// Names of the files in attachments/ (hidden ones skipped), for encrypting or decrypting all of them.
 #[tauri::command]
 async fn list_attachments(app: AppHandle) -> Result<Vec<String>, String> {
+    if let Some(path) = db_for(&app)? {
+        return with_db(&path, |c| {
+            let mut st = c.prepare("SELECT name FROM attachments ORDER BY name").map_err(es)?;
+            let rows = st.query_map([], |r| r.get::<_, String>(0)).map_err(es)?;
+            rows.collect::<Result<Vec<_>, _>>().map_err(es)
+        });
+    }
     let dir = files_root(&app)?.join("attachments");
     if !dir.is_dir() {
         return Ok(Vec::new());
@@ -340,10 +496,15 @@ async fn open_temp_file(app: AppHandle, name: String, data: String) -> Result<()
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(data)
         .map_err(|e| e.to_string())?;
-    let dir = open_temp_dir(&app)?;
+    open_bytes(&app, &name, &bytes)
+}
+
+/// Writes `bytes` to the temporary folder and opens the file in the default app.
+fn open_bytes(app: &AppHandle, name: &str, bytes: &[u8]) -> Result<(), String> {
+    let dir = open_temp_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let path = dir.join(&name);
-    write_atomic(&path, &bytes)?;
+    let path = dir.join(name);
+    write_atomic(&path, bytes)?;
     app.opener()
         .open_path(path.to_string_lossy(), None::<&str>)
         .map_err(|e| e.to_string())
@@ -357,6 +518,10 @@ async fn open_attachment(app: AppHandle, name: String) -> Result<(), String> {
         && name.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c));
     if !ok {
         return Err(format!("Refusing to open attachment {name:?}"));
+    }
+    if let Some(path) = db_for(&app)? {
+        let bytes = db_attachment(&path, &name)?.ok_or("That file is missing from attachments")?;
+        return open_bytes(&app, &name, &bytes);
     }
     let path = files_root(&app)?.join("attachments").join(&name);
     app.opener()
@@ -528,6 +693,14 @@ async fn backup_write(app: AppHandle, name: String, data: String) -> Result<(), 
     if !backup_name_ok(&name) {
         return Err(format!("Refusing to use backup name {name:?}"));
     }
+    if let Some(path) = db_for(&app)? {
+        return with_db(&path, |c| {
+            c.execute("INSERT OR REPLACE INTO backups (name, data) VALUES (?1, ?2)", params![name, data]).map_err(es)?;
+            c.execute("DELETE FROM backups WHERE name NOT IN (SELECT name FROM backups ORDER BY name DESC LIMIT 7)", [])
+                .map_err(es)?;
+            Ok(())
+        });
+    }
     let dir = files_root(&app)?.join(".prodify-backups");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     write_atomic(&dir.join(format!("{name}.json")), data.as_bytes())?;
@@ -548,6 +721,15 @@ async fn backup_write(app: AppHandle, name: String, data: String) -> Result<(), 
 /// Lists the backups as (name, size in bytes), newest first.
 #[tauri::command]
 async fn backup_list(app: AppHandle) -> Result<Vec<(String, u64)>, String> {
+    if let Some(path) = db_for(&app)? {
+        return with_db(&path, |c| {
+            let mut st = c.prepare("SELECT name, length(data) FROM backups ORDER BY name DESC").map_err(es)?;
+            let rows = st
+                .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?.max(0) as u64)))
+                .map_err(es)?;
+            rows.collect::<Result<Vec<_>, _>>().map_err(es)
+        });
+    }
     let dir = files_root(&app)?.join(".prodify-backups");
     if !dir.exists() {
         return Ok(Vec::new());
@@ -573,6 +755,11 @@ async fn backup_list(app: AppHandle) -> Result<Vec<(String, u64)>, String> {
 async fn backup_read(app: AppHandle, name: String) -> Result<String, String> {
     if !backup_name_ok(&name) {
         return Err(format!("Refusing to read backup {name:?}"));
+    }
+    if let Some(db) = db_for(&app)? {
+        return with_db(&db, |c| {
+            c.query_row("SELECT data FROM backups WHERE name = ?1", params![name], |r| r.get::<_, String>(0)).map_err(es)
+        });
     }
     let path = files_root(&app)?
         .join(".prodify-backups")
@@ -707,15 +894,28 @@ async fn mirror_files(
         write_atomic(&path, text.as_bytes())?;
         written += 1;
     }
+    let db = db_for(&app)?;
     let mut copied = 0;
     for name in &attachments {
         let rel = Path::new(name);
         if name.is_empty() || !rel.components().all(|c| matches!(c, Component::Normal(_))) {
             return Err(format!("Refusing to copy {name:?}"));
         }
+        let dst = dest.join("attachments").join(rel);
+        if let Some(path) = &db {
+            let Some(bytes) = db_attachment(path, name)? else { continue };
+            if fs::metadata(&dst).map(|m| m.len() == bytes.len() as u64).unwrap_or(false) {
+                continue;
+            }
+            if let Some(parent) = dst.parent() {
+                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            write_atomic(&dst, &bytes)?;
+            copied += 1;
+            continue;
+        }
         let src = root.join("attachments").join(rel);
         let Ok(meta) = fs::metadata(&src) else { continue };
-        let dst = dest.join("attachments").join(rel);
         if fs::metadata(&dst).map(|m| m.len() == meta.len()).unwrap_or(false) {
             continue;
         }
@@ -726,6 +926,132 @@ async fn mirror_files(
         copied += 1;
     }
     Ok(MirrorResult { written, attachments: copied })
+}
+
+#[derive(Serialize)]
+struct StorageSwitch {
+    files: usize,
+    attachments: usize,
+}
+
+/// Moves the current folder's data between the Markdown folder and app storage.
+/// To "db": the folder's files, attachments and backups are copied into the database (replacing what it held
+/// before), and the folder is left untouched as a copy. To "md": the app hands over every file as it should be
+/// written (`files`, encrypted the folder's way when the account encrypts); Markdown files and attachments
+/// already in the folder are from before the switch, so they're moved into .prodify-old/<time>/ rather than
+/// deleted, then the files, attachments and backups are written out. The database file is kept.
+#[tauri::command]
+async fn storage_switch(
+    app: AppHandle,
+    mode: String,
+    files: Option<BTreeMap<String, String>>,
+) -> Result<StorageSwitch, String> {
+    let root = files_root(&app)?;
+    let key = root.to_string_lossy().into_owned();
+    let db = db_file(&app, &root)?;
+    let mut modes = storage_modes(&app)?;
+    if mode == "db" {
+        let mut md = BTreeMap::new();
+        walk(&root, &root, &mut md)?;
+        let mut atts: Vec<(String, Vec<u8>)> = Vec::new();
+        let att_dir = root.join("attachments");
+        if att_dir.is_dir() {
+            for e in fs::read_dir(&att_dir).map_err(|e| e.to_string())?.flatten() {
+                let n = e.file_name().to_string_lossy().into_owned();
+                if e.file_type().map(|t| t.is_file()).unwrap_or(false) && attachment_name_ok(&n) {
+                    atts.push((n, fs::read(e.path()).map_err(|er| er.to_string())?));
+                }
+            }
+        }
+        let mut bks: Vec<(String, String)> = Vec::new();
+        let bk_dir = root.join(".prodify-backups");
+        if bk_dir.is_dir() {
+            for e in fs::read_dir(&bk_dir).map_err(|e| e.to_string())?.flatten() {
+                let n = e.file_name().to_string_lossy().into_owned();
+                if let Some(stem) = n.strip_suffix(".json") {
+                    if backup_name_ok(stem) {
+                        bks.push((stem.to_string(), fs::read_to_string(e.path()).map_err(|er| er.to_string())?));
+                    }
+                }
+            }
+        }
+        let counts = StorageSwitch { files: md.len(), attachments: atts.len() };
+        with_db(&db, |c| {
+            let tx = c.transaction().map_err(es)?;
+            tx.execute_batch("DELETE FROM files; DELETE FROM attachments; DELETE FROM backups;").map_err(es)?;
+            for (k, v) in &md {
+                tx.execute("INSERT INTO files (key, body) VALUES (?1, ?2)", params![k, v]).map_err(es)?;
+            }
+            for (n, b) in &atts {
+                tx.execute("INSERT INTO attachments (name, data) VALUES (?1, ?2)", params![n, b]).map_err(es)?;
+            }
+            for (n, d) in &bks {
+                tx.execute("INSERT INTO backups (name, data) VALUES (?1, ?2)", params![n, d]).map_err(es)?;
+            }
+            tx.commit().map_err(es)
+        })?;
+        modes.insert(key, "db".into());
+        storage_save(&app, &modes)?;
+        return Ok(counts);
+    }
+    let files = files.ok_or("The files to write are missing")?;
+    let (atts, bks) = with_db(&db, |c| {
+        let mut st = c.prepare("SELECT name, data FROM attachments").map_err(es)?;
+        let atts = st
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, Vec<u8>>(1)?)))
+            .map_err(es)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(es)?;
+        let mut st = c.prepare("SELECT name, data FROM backups").map_err(es)?;
+        let bks = st
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+            .map_err(es)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(es)?;
+        Ok((atts, bks))
+    })?;
+    let mut old = Vec::new();
+    app_files(&root, &root, &mut old)?;
+    if !old.is_empty() {
+        let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let aside = root.join(".prodify-old").join(stamp.to_string());
+        for rel in &old {
+            let dst = aside.join(rel);
+            if let Some(parent) = dst.parent() {
+                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            fs::rename(root.join(rel), &dst).map_err(|e| format!("Could not move {} aside: {e}", rel.display()))?;
+        }
+    }
+    for (k, v) in &files {
+        let path = file_path(&root, k)?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        write_atomic(&path, v.as_bytes())?;
+    }
+    if !atts.is_empty() {
+        let dir = root.join("attachments");
+        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        for (n, b) in &atts {
+            if attachment_name_ok(n) {
+                write_atomic(&dir.join(n), b)?;
+            }
+        }
+    }
+    if !bks.is_empty() {
+        let dir = root.join(".prodify-backups");
+        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        for (n, d) in &bks {
+            if backup_name_ok(n) {
+                write_atomic(&dir.join(format!("{n}.json")), d.as_bytes())?;
+            }
+        }
+    }
+    modes.remove(&key);
+    storage_save(&app, &modes)?;
+    *DB.lock().map_err(|e| e.to_string())? = None;
+    Ok(StorageSwitch { files: files.len(), attachments: atts.len() })
 }
 
 #[tauri::command]
@@ -783,6 +1109,7 @@ pub fn run() {
             pick_folder,
             set_data_dir,
             mirror_files,
+            storage_switch,
             read_attachment,
             list_attachments,
             open_temp_file,

@@ -20,3 +20,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
 ureq = "2"
+# App storage (Settings → Data and backups): SQLite built in, so nothing extra is needed on any platform.
+rusqlite = { version = "0.32", features = ["bundled"] }
