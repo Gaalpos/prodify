@@ -50,15 +50,17 @@ const encOn=()=>!!(ACCT&&ACCT.enc&&DK);
 // What a file looks like on disk: encrypted when the account encrypts (never the account file itself).
 const encFile=(k,t)=>encOn()&&k!==ACCK?encText(hideNames(k)?k+'\n'+t:t):t;
 function accParse(t){if(typeof t!=='string')return null;const g=k=>{const m=t.match(new RegExp('^'+k+':[ \\t]*(.*)$','m'));return m?m[1].trim():''};if(g('prodify-account')!=='1')return null;
- return{name:g('name'),enc:g('encrypted')==='true',iter:+g('iterations')||600000,salt:g('salt'),key:g('key'),riter:+g('recovery-iterations')||100000,rsalt:g('recovery-salt'),rkey:g('recovery-key'),created:g('created')}}
-const accText=a=>`---\nprodify-account: 1\nname: ${String(a.name||'').replace(/\s+/g,' ').trim()}\nencrypted: ${!!a.enc}\nkdf: PBKDF2-SHA256, AES-256-GCM\niterations: ${a.iter}\nsalt: ${a.salt}\nkey: ${a.key}\nrecovery-iterations: ${a.riter}\nrecovery-salt: ${a.rsalt}\nrecovery-key: ${a.rkey}\ncreated: ${a.created}\n---\n# Prodify account\n\nThis file lets Prodify open your data. It holds your account name and your data key, locked with your password and with your recovery key (neither is stored here). Keep it in this folder and in your backups: without it ${a.enc?'your encrypted files can’t be opened':'Prodify won’t ask for your password'}.\n`;
+ return{name:g('name'),enc:g('encrypted')==='true',iter:+g('iterations')||600000,salt:g('salt'),key:g('key'),riter:+g('recovery-iterations')||100000,rsalt:g('recovery-salt'),rkey:g('recovery-key'),created:g('created'),kid:g('key-id')}}
+const accText=a=>`---\nprodify-account: 1\nname: ${String(a.name||'').replace(/\s+/g,' ').trim()}\nencrypted: ${!!a.enc}\nkdf: PBKDF2-SHA256, AES-256-GCM\niterations: ${a.iter}\nsalt: ${a.salt}\nkey: ${a.key}\nrecovery-iterations: ${a.riter}\nrecovery-salt: ${a.rsalt}\nrecovery-key: ${a.rkey}\n${a.kid?`key-id: ${a.kid}\n`:''}created: ${a.created}\n---\n# Prodify account\n\nThis file lets Prodify open your data. It holds your account name and your data key, locked with your password and with your recovery key (neither is stored here). Keep it in this folder and in your backups: without it ${a.enc?'your encrypted files can’t be opened':'Prodify won’t ask for your password'}.\n`;
 // Recovery keys: 20 random bytes as 32 letters and digits in groups of four.
 const recNew=()=>{const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(32));return [...r].map(x=>A[x%32]).join('').match(/.{4}/g).join('-')};
 const recNorm=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const randB64=n=>u8b64(crypto.getRandomValues(new Uint8Array(n)));
 async function accSeal(a,pw,rk){a.salt=randB64(16);a.key=u8b64(await sealB(await kdf(pw,a.salt,a.iter),DKRAW));if(rk){a.rsalt=randB64(16);a.rkey=u8b64(await sealB(await kdf(recNorm(rk),a.rsalt,a.riter),DKRAW))}}
 // The data key from the password (or, with rec, the recovery key); null when it's wrong.
-async function accKey(secret,rec){const a=ACCT;try{return await openB(await kdf(rec?recNorm(secret):secret,rec?a.rsalt:a.salt,rec?a.riter:a.iter),b64u8(rec?a.rkey:a.key))}catch(e){return null}}
+// A fingerprint of the data key (reveals nothing about it): tells whether two devices or a cloud use the same account.
+async function keyId(){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new Uint8Array([...new TextEncoder().encode('prodify-key-id:'),...DKRAW])))].slice(0,8).map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function accKey(secret,rec,acct){const a=acct||ACCT;try{return await openB(await kdf(rec?recNorm(secret):secret,rec?a.rsalt:a.salt,rec?a.riter:a.iter),b64u8(rec?a.rkey:a.key))}catch(e){return null}}
 // Plain text for each file read from disk; files whose disk form doesn't match the account get rewritten.
 async function rawToPlain(raw){const out={};
  if(raw[ACCK]!==RAW[ACCK]){const a=accParse(raw[ACCK]);if(a)ACCT=a;else if(ACCT&&RAW[ACCK]&&!raw[ACCK])ACCT=null}// account changed (or removed) on another device
@@ -79,7 +81,7 @@ const save=()=>{if(LOCKED||!ACCREADY)return;
   const write={},remove=gone.map(k=>DISKK[k]||k),dks={};
   for(const k in plain){const dk=await diskKey(k);dks[k]=dk;write[dk]=await encFile(k,plain[k]);if(DISKK[k]&&DISKK[k]!==dk)remove.push(DISKK[k])}
   if(TAURI)await TAURI.invoke('sync_files',{write,remove});else{remove.forEach(k=>delete LSRAW[k]);Object.assign(LSRAW,write);localStorage.setItem(K+USUF,JSON.stringify(LSRAW))}
-  gone.forEach(k=>{delete DISK[k];delete RAW[k];delete DISKK[k]});Object.assign(DISK,plain);for(const k in plain){RAW[k]=write[dks[k]];DISKK[k]=dks[k];NEEDW.delete(k)}if(typeof mirSoon==='function')mirSoon()},'your files')};
+  gone.forEach(k=>{delete DISK[k];delete RAW[k];delete DISKK[k]});Object.assign(DISK,plain);for(const k in plain){RAW[k]=write[dks[k]];DISKK[k]=dks[k];NEEDW.delete(k)}if(typeof mirSoon==='function')mirSoon();if(typeof cloudSoon==='function')cloudSoon()},'your files')};
 const HERE=TAURI?'in your Prodify folder':'in this browser';
 const DEF={searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
 let CFG={...DEF};
@@ -1749,7 +1751,7 @@ async function accLoad(raw){const plain={},bad=[],r2={};DISKK={};NHK=null;
 async function accUnlock(secret,rec){const k=await accKey(secret,rec);if(!k)return false;
  if(!ACCREADY){DKRAW=k;DK=await aesKey(k);await accLoad(BOOTRAW);accAfterLoad()}return true}
 // What startup does with the files, run again once they're decrypted.
-function accAfterLoad(){try{trashPurge()}catch(e){}try{if(CFG.prompts){const u=allQ().find(x=>!x.a.length);if(u)curQ=u.q}}catch(e){}if(NEEDW.size)save();setTimeout(()=>{try{bkAuto()}catch(e){}},2000)}
+function accAfterLoad(){cloudSoon(1500);if(ACCT&&!ACCT.kid&&DKRAW)keyId().then(k=>{ACCT.kid=k;FS[ACCK]=accText(ACCT);save()});try{trashPurge()}catch(e){}try{if(CFG.prompts){const u=allQ().find(x=>!x.a.length);if(u)curQ=u.q}}catch(e){}if(NEEDW.size)save();setTimeout(()=>{try{bkAuto()}catch(e){}},2000)}
 // Rewrites every attachment (and the automatic backups) in the form the account asks for: encrypted or plain.
 async function accConvertExtra(on){let n=0;
  const names=TAURI?await TAURI.invoke('list_attachments'):[...new Set(Object.values(FS).flatMap(t=>[...String(t).matchAll(/attachments\/([^)\s"'<>]+)/g)].map(m=>decodeURIComponent(m[1]))))];
@@ -1760,7 +1762,7 @@ async function accConvertExtra(on){let n=0;
 // Turns encryption on or off: every file is rewritten in the new form, then attachments and backups.
 async function accSetEnc(on){ACCT.enc=on;FS[ACCK]=accText(ACCT);Object.keys(FS).forEach(k=>{if(k!==ACCK)NEEDW.add(k)});save();await SQ;await accConvertExtra(on);if(typeof mirReset==='function')mirReset()}
 async function accCreate(name,pw,enc){DKRAW=crypto.getRandomValues(new Uint8Array(32));NHK=null;DK=await aesKey(DKRAW);const rk=recNew(),a={name,enc:false,iter:600000,riter:100000,created:TD()};
- await accSeal(a,pw,rk);ACCT=a;ACCREADY=true;FS[ACCK]=accText(a);delete CFG.lock;saveCfg();save();if(enc)await accSetEnc(true);return rk}
+ await accSeal(a,pw,rk);a.kid=await keyId();ACCT=a;ACCREADY=true;FS[ACCK]=accText(a);delete CFG.lock;saveCfg();save();if(enc)await accSetEnc(true);return rk}
 async function accRemove(){if(ACCT.enc)await accSetEnc(false);delete FS[ACCK];save();await SQ;ACCT=null;DK=null;DKRAW=null;NEEDW.clear();if(typeof mirReset==='function')mirReset()}
 const userSave=()=>store.set('prodify.users',JSON.stringify(USERS));
 const uInit=u=>esc((String(u.name||'?').trim()[0]||'?').toUpperCase());
@@ -2828,7 +2830,7 @@ const setSearch=()=>{const w=hWords(setQ),hits=SETS().filter(setOk).filter(x=>{c
 let SETG=null;
 const SETGROUPS=[['look','Appearance','palette','🎨',['Appearance'],'Theme, colors, fonts, sidebar and page width'],['general','General','gear','⚙️',['General','Calendar and time'],'Name, language, weather, time format and calendar'],
  ['sections','Sections and Home','squares-four','▦',['Sections','Home cards'],'Turn sections on or off, icons and Home cards'],['content','Notes, journal and more','note','📝',['Notes','Journal','Reminders','Collections'],'Notes, journal, reminders and collections'],
- ['account','Account and data','user-circle','👤',['@acc','Privacy','Users','Storage','Backup folder','Backups','Reset'],'Password, encryption, users, where your data lives, backups and reset'],
+ ['account','Account and data','user-circle','👤',['@acc','Prodify Cloud','Privacy','Users','Storage','Backup folder','Backups','Reset'],'Password, encryption, cloud sync, users, where your data lives and backups'],
  ['tools','Integrations and commands','plug','🔌',['Integrations','Commands'],'AI, connected services and custom commands']];
 function setSplit(){const t=document.createElement('template'),by={};t.innerHTML=V.settingsAll();
  [...t.content.children].forEach(el=>{const h=((el.querySelector('h2')||{}).textContent||'').trim(),key=el.classList&&el.classList.contains('accsec')?'@acc':h,g=(SETGROUPS.find(x=>x[4].includes(key))||SETGROUPS[1])[0];el._k=key;(by[g]=by[g]||[]).push(el)});
@@ -2874,7 +2876,7 @@ ${secOn('projects')?swRow('Confirm before deleting a project','confirmProject',C
 ${secOn('journal')?swRow('Confirm before deleting a question','confirmQuestion',CFG.confirmQuestion):''}</section>
 <section><h2>Sections</h2><p class="meta" style="margin:0 0 10px">Drag to reorder. Click the icon to change it. 1 col / 2 col sets how wide its card is in the Cards layout. Turning a section off disables it everywhere: it leaves the sidebar, Home, search, commands, Calendar, reminders and the settings that belong to it, and other sections stop linking to it. Your files are kept and come back when you turn it on.</p>${tabList().map(t=>dndRow('tab',t[0],t[1],secOn(t[0]),t[0]==='settings')).join('')}</section>
 <section><h2>Home cards</h2><p class="meta" style="margin:0 0 10px">You can also drag cards directly on Home with the Customize button.</p>${secOn('collections')||secOn('tasks')?`<div class="row" style="margin:0 0 10px">${secOn('tasks')?'<button class="g" data-act="tcNew">+ Task list card</button>':''}${secOn('collections')?'<button class="g" data-act="ccNew">+ Collection card</button>':''}</div>`:''}${homeList().map(id=>{const x=homeDefs().find(y=>y[0]===id);return dndRow('home',id,x[1],!(CFG.homeOff||[]).includes(id),false,x[2]&&!secOn(x[2])?'· its section is off':'')}).join('')}</section>
-${accSettings()}${usersSettings()}${backupSettings()}
+${accSettings()}${cloudSection()}${usersSettings()}${backupSettings()}
 <section><h2>Integrations</h2>${secOn('journal')?swRow('AI-generated questions (Claude)','intAi',CFG.intAi):''}<p class="meta" style="margin:6px 0 0">Off: new questions come only from the built-in list.</p>
 ${aiKeyBody()}
 ${secOn('tasks')?swRow('In-app reminder banner','intRem',CFG.intRem):''}
@@ -3787,6 +3789,17 @@ else if(a==='bkNow'){backupNow();return}
 else if(a==='bkRestore'){const n=b.dataset.val;if(armed!=='bk:'+n){armed='bk:'+n;render();return}armed=null;backupRestore(n);return}
 else if(a==='kbOpen'){KSH=true;kbShow();return}
 else if(a==='kbClose'){KSH=false;kbShow();return}
+else if(a==='cloudUrlSave'){const u=v('cloudurl').replace(/\/+$/,'');if(u&&!/^https?:\/\//.test(u)){toast('Use a full address, starting with https://');return}CFG.cloudUrl=u;CFG.cloud={...(CFG.cloud||{}),url:u};saveCfg();toast(u?'Server saved':'Server cleared')}
+else if(a==='cloudStart'){const em=v('cloudemail');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Type your email');return}CFG.cloud={...(CFG.cloud||{}),url:cloudUrl(),email:em};saveCfg();cloudBusy=true;render();
+ cloudJson('POST','/auth/start',{email:em}).then(r=>{CLOUDUI={step:'code',email:em,dev:r.devCode||''};cloudErr='';pendingFocus='#cloudcode'}).catch(e=>{cloudErr=e.message}).finally(()=>{cloudBusy=false;render()});return}
+else if(a==='cloudCancel'){CLOUDUI=null}
+else if(a==='cloudVerify'){const code=v('cloudcode');cloudBusy=true;render();
+ cloudJson('POST','/auth/verify',{email:CLOUDUI.email,code,device:(TAURI?'Prodify app':'Prodify web')+' · '+(navigator.platform||'')}).then(r=>{CFG.cloud={url:cloudUrl(),email:CLOUDUI.email,token:r.token,me:r.me,seq:0};saveCfg();CS={base:{},rev:{},ids:{}};CLOUDUI=null;cloudErr='';toast('Signed in to Prodify Cloud');setTimeout(()=>cloudSync(),50)})
+  .catch(e=>{cloudErr=e.message}).finally(()=>{cloudBusy=false;render()});return}
+else if(a==='cloudNow'){cloudSync().then(ch=>{if(!cloudErr)toast(ch?'Synced · changes from your other devices are in':'Synced')});render();return}
+else if(a==='cloudOut'){cloudSignOut().then(()=>{toast('Signed out of Prodify Cloud');render()});return}
+else if(a==='cloudJoin'){cloudBusy=true;render();cloudApi('GET','/obj/account').then(async r=>{if(!r.ok){toast('This cloud is empty. Create an account with encryption first, then sync.');return}const t=await r.text(),ac=accParse(t);cloudMismatch={text:t,name:ac&&ac.name};pendingFocus='#cloudpw'}).catch(e=>{cloudErr=e.message}).finally(()=>{cloudBusy=false;render()});return}
+else if(a==='cloudAdopt'){const pw=($('cloudpw')||{}).value||'';cloudBusy=true;render();cloudAdopt(pw).then(ok=>{if(!ok){toast('Wrong password');return}toast('This device now uses your cloud account · syncing…');setTimeout(()=>cloudSync(),50)}).finally(()=>{cloudBusy=false;render()});return}
 else if(a==='storeDb'){storeSwitch('db');return}
 else if(a==='storeMd'){storeSwitch('md');return}
 else if(a==='setGroup'){SETG=b.dataset.v||null;setQ='';window.scrollTo(0,0)}
@@ -4520,3 +4533,87 @@ function appBack(){
 try{history.replaceState({prodify:'root'},'')}catch(e){}backArm();
 window.addEventListener('popstate',()=>{inBack=true;let done=false;try{done=appBack()}finally{inBack=false}
  if(done)backArm();else toast('Press back again to exit')});
+
+/* ---------- Prodify Cloud (Plus) ----------
+   Syncs this user's data through the Prodify Cloud server (cloud/ in the repository). Everything is encrypted here
+   first: each file is an object "r/<keyed hash of its name>" holding its encrypted name and text, photos and PDFs are
+   "a/<name>" with encrypted bytes, and "account" is the account file (locked data key, nothing secret), which lets a
+   new device unlock with the account's password. A round pulls what changed since the last one (merging like live
+   sync, with the last synced version as the base), then pushes local changes "only if the cloud copy is still the
+   one I last saw", so nothing is overwritten. Deletes travel as tombstones. CFG.cloud keeps the server, session and
+   position; the bases are kept, encrypted, under the "prodify.cloudbase" setting. */
+const CLOUD_DEFAULT='';// the server's address once it's deployed (until then, set it in Settings → Account and data)
+const PLANL={free:'Free',basic:'Basic',pro:'Pro'};
+let CS=null,cloudBusy=false,cloudTimer=null,CLOUDUI=null,cloudErr='',cloudFull=false,cloudMismatch=null;
+const cloudUrl=()=>((CFG.cloud&&CFG.cloud.url)||CFG.cloudUrl||CLOUD_DEFAULT||'').replace(/\/+$/,'');
+const cloudOn=()=>!!(CFG.cloud&&CFG.cloud.token&&cloudUrl());
+const fmtBytes=n=>n>=1073741824?(n/1073741824).toFixed(n>=10737418240?0:1)+' GB':n>=1048576?(n/1048576).toFixed(n>=10485760?0:1)+' MB':Math.max(0,Math.round(n/1024))+' KB';
+async function cloudApi(method,path,body,headers){const c=CFG.cloud||{},h={...(headers||{})};if(c.token)h.authorization='Bearer '+c.token;
+ const r=await fetch(cloudUrl()+path,{method,headers:h,body});
+ if(r.status===401&&c.token){CFG.cloud={url:c.url};saveCfg();CS=null;throw new Error('Your cloud session ended. Please sign in again.')}
+ return r}
+const cloudJson=async(method,path,obj)=>{const r=await cloudApi(method,path,obj===undefined?undefined:JSON.stringify(obj),obj===undefined?{}:{'content-type':'application/json'});const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||('Error '+r.status)),{status:r.status,body:j});return j};
+// Sync bases (last synced text per file) and revisions, encrypted at rest with the data key.
+async function csLoad(){if(CS)return CS;CS={base:{},rev:{},ids:{}};try{const raw=store.get('prodify.cloudbase'+USUF);if(raw&&DK)Object.assign(CS,JSON.parse(isEncT(raw)?await decText(raw):raw))}catch(e){}return CS}
+async function csSave(){if(CS&&DK)store.set('prodify.cloudbase'+USUF,await encText(JSON.stringify(CS)))}
+const cloudId=async k=>k===ACCK?'account':'r/'+await nameHash(k);
+const attRefs=()=>[...new Set(Object.values(FS).flatMap(t=>[...String(t).matchAll(/attachments\/([^)\s"'<>]+)/g)].map(m=>decodeURIComponent(m[1]))))].filter(n=>/^[A-Za-z0-9._-]{1,200}$/.test(n));
+function cloudSoon(ms){if(!cloudOn())return;clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSync,ms==null?3000:ms)}
+// One round: pull, merge, push. Returns true when the data here changed.
+async function cloudSync(){if(!cloudOn()||!ACCREADY||PWLOCK||WHO||!encOn()||cloudBusy||cloudMismatch)return false;cloudBusy=true;let changed=false,again=false;
+ try{await csLoad();const was=JSON.stringify(Object.keys(FS).map(k=>[k,FS[k].length]));
+  // 1. pull
+  let since=CFG.cloud.seq||0,more=true;
+  while(more){const r=await cloudJson('GET','/changes?since='+since);
+   for(const it of r.items){const id=it.id;if(CS.rev[id]===it.rev)continue;
+    if(id==='account'){const t=await (await cloudApi('GET','/obj/account')).text(),a=accParse(t);
+     if(a&&a.kid&&ACCT.kid&&a.kid!==ACCT.kid){cloudMismatch={text:t,name:a.name};throw new Error('This cloud belongs to another Prodify account')}
+     if(a&&t!==FS[ACCK]&&!it.deleted){FS[ACCK]=t;ACCT=a;changed=true}CS.base[ACCK]=t;CS.rev[id]=it.rev;continue}
+    if(id.startsWith('a/')){if(!it.deleted){const u=new Uint8Array(await (await cloudApi('GET','/obj/'+encodeURIComponent(id))).arrayBuffer());await attWrite(id.slice(2),u);delete ATTURL[id.slice(2)]}CS.rev[id]=it.rev;continue}
+    if(it.deleted){const k=CS.ids[id];if(k!==undefined){if(FS[k]===CS.base[k]){delete FS[k];changed=true}delete CS.base[k]}CS.rev[id]=it.rev;continue}
+    const res=await cloudApi('GET','/obj/'+encodeURIComponent(id));if(!res.ok)continue;
+    const d=await decText(await res.text()),i=d.indexOf('\n'),k=d.slice(0,i),t=d.slice(i+1),base=CS.base[k],mine=FS[k];
+    if(mine===undefined){if(base===undefined){FS[k]=t;changed=true}}// a file deleted here stays deleted (the delete is pushed below)
+    else{const out=merge3(base===undefined?'':base,mine,t);if(out!==mine){FS[k]=out;changed=true}}
+    CS.base[k]=t;CS.rev[id]=it.rev;CS.ids[id]=k}
+   since=r.seq;more=r.more;CFG.cloud.me=r.me}
+  CFG.cloud.seq=since;
+  // 2. push changed files, deletes and new attachments
+  for(const k of Object.keys(FS)){if(FS[k]===CS.base[k])continue;const id=await cloudId(k),body=k===ACCK?FS[k]:await encText(k+'\n'+FS[k]);
+   const r=await cloudApi('PUT','/obj/'+encodeURIComponent(id),body,{'if-match':String(CS.rev[id]||0)});
+   if(r.status===409){again=true;continue}if(r.status===413){cloudFull=true;break}if(!r.ok)throw new Error('Upload failed ('+r.status+')');
+   CS.rev[id]=(await r.json()).rev;CS.base[k]=FS[k];CS.ids[id]=k;cloudFull=false}
+  for(const k of Object.keys(CS.base)){if(k in FS)continue;const id=await cloudId(k);
+   const r=await cloudApi('DELETE','/obj/'+encodeURIComponent(id),undefined,{'if-match':String(CS.rev[id]||0)});
+   if(r.status===409){again=true;continue}if(r.ok){CS.rev[id]=(await r.json()).rev;delete CS.base[k]}}
+  if(!cloudFull)for(const n of attRefs()){const id='a/'+n;if(CS.rev[id])continue;let u;try{u=await attRead(n)}catch(e){continue}if(!u)continue;if(!isEncB(u))u=await encBytes(u);
+   const r=await cloudApi('PUT','/obj/'+encodeURIComponent(id),u,{'if-match':'0'});if(r.status===409){CS.rev[id]=(await r.json().catch(()=>({}))).rev||1;continue}if(r.status===413){cloudFull=true;break}if(r.ok)CS.rev[id]=(await r.json()).rev}
+  try{CFG.cloud.me=await cloudJson('GET','/me')}catch(e){}
+  CFG.cloud.last=Date.now();cloudErr='';await csSave();saveCfg();
+  if(changed){save();if(view!=='settings'||!document.activeElement||document.activeElement===document.body)rerenderKeep();else if(view==='settings')rerenderKeep()}
+  else if(view==='settings')rerenderKeep();
+  if(again)cloudSoon(500);return changed}
+ catch(e){cloudErr=String(e&&e.message||e);if(view==='settings')rerenderKeep();return false}
+ finally{cloudBusy=false}}
+setInterval(()=>cloudSync(),60000);window.addEventListener('focus',()=>cloudSoon(300));
+// Joining a cloud that belongs to another account: this device takes that account (its password unlocks it), and
+// its own notes are re-encrypted with that account's key and merged into the cloud on the next round.
+async function cloudAdopt(pw){const t=cloudMismatch&&cloudMismatch.text,a=accParse(t);if(!a)return false;const k=await accKey(pw,false,a)||await accKey(pw,true,a);if(!k)return false;
+ DKRAW=k;DK=await aesKey(k);NHK=null;ACCT=a;FS[ACCK]=t;Object.keys(FS).forEach(x=>{if(x!==ACCK)NEEDW.add(x)});CS={base:{},rev:{},ids:{}};CFG.cloud.seq=0;cloudMismatch=null;save();await SQ;await accConvertExtra(true);return true}
+async function cloudSignOut(){try{await cloudJson('POST','/auth/logout',{})}catch(e){}const url=CFG.cloud&&CFG.cloud.url;CFG.cloud={url};saveCfg();CS=null;store.set('prodify.cloudbase'+USUF,null);cloudErr='';cloudMismatch=null;cloudFull=false}
+const cloudSection=()=>{const c=CFG.cloud||{},m=c.me,dis=cloudBusy?'disabled':'';
+ const plans=`<div class="cplans">${[['free','Free','100 MB'],['basic','Basic','5 GB'],['pro','Pro','50 GB']].map(([id,l,sz])=>`<div class="cplan ${m&&m.plan===id?'on':''}"><b>${l}</b><span>${sz}</span>${m&&m.plan===id?'<span class="meta">Your plan</span>':id==='free'?'<span class="meta">Included</span>':'<span class="meta">Coming soon</span>'}</div>`).join('')}</div>`;
+ const server=`<details class="cadv"><summary class="meta">Server</summary><div class="row" style="margin:6px 0 0"><input id="cloudurl" value="${esc(cloudUrl())}" placeholder="https://prodify-cloud.example.workers.dev" autocomplete="off" spellcheck="false" aria-label="Server address"><button class="g" data-act="cloudUrlSave">Save</button></div></details>`;
+ if(!cloudOn())return `<section class="cloudsec"><h2>Prodify Cloud</h2><p class="meta" style="margin:0 0 10px">Sync your notes, journal, tasks and photos across your devices. Everything is encrypted on this device before it’s uploaded, names included, so nobody else can read it.</p>${plans}
+${!cloudUrl()?'<p class="meta">Prodify Cloud isn’t available in this version yet.</p>'+server
+ :CLOUDUI&&CLOUDUI.step==='code'?`<div class="accpanel"><p style="margin:0 0 6px">We sent a 6-digit code to <b data-notr>${esc(CLOUDUI.email)}</b>.</p>${CLOUDUI.dev?`<p class="meta" style="margin:0 0 6px">Test server: your code is <b data-notr>${esc(CLOUDUI.dev)}</b></p>`:''}<input id="cloudcode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="Code"><div class="row"><button class="b" data-act="cloudVerify" ${dis}>Sign in</button><button class="g" data-act="cloudCancel">Back</button></div></div>`
+ :`<div class="row" style="margin:0"><input id="cloudemail" type="email" value="${esc(c.email||'')}" placeholder="you@example.com" autocomplete="email" aria-label="Email"><button class="b" data-act="cloudStart" ${dis}>Send me a code</button></div><p class="meta" style="margin:6px 0 0">No password: we email you a sign-in code. Free includes 100 MB.</p>${server}`}${cloudErr?`<p class="meta mirerr">${esc(cloudErr)}</p>`:''}</section>`;
+ const need=!ACCT?'Cloud sync needs a local account with encryption. Create one in Account above, or, if this cloud already has your data, enter its password below.':!ACCT.enc?'Cloud sync needs encryption: turn on “Encrypt my data” in Account above.':'';
+ const pct=m?Math.min(100,Math.round(m.used/m.quota*100)):0;
+ return `<section class="cloudsec"><h2>Prodify Cloud</h2><div class="acchead"><span class="accav">${lineIco('M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.3 4.5 4.5 0 0 0 7 18z')}</span><div class="accwho"><b data-notr>${esc(c.email||'')}</b><span class="meta">${m?PLANL[m.plan]||'Free':''} plan · ${cloudBusy?'Syncing…':c.last?'Last synced '+tf((d=>pad(d.getHours())+':'+pad(d.getMinutes()))(new Date(c.last))):'Not synced yet'}</span></div><button class="g" data-act="cloudNow" ${dis||(need?'disabled':'')}>Sync now</button></div>
+${m?`<div class="cuse"><span style="width:${pct}%"></span></div><p class="meta" style="margin:4px 0 10px">${fmtBytes(m.used)} of ${fmtBytes(m.quota)} used${cloudFull?' · <b>Your cloud storage is full.</b> New changes stay on this device.':''}</p>`:''}
+${cloudMismatch?`<div class="accpanel"><p style="margin:0 0 6px">This cloud belongs to another Prodify account${cloudMismatch.name?` (<b data-notr>${esc(cloudMismatch.name)}</b>)`:''}. Enter its password to use it here: your notes on this device are encrypted with that account and merged into the cloud.</p><input type="password" id="cloudpw" autocomplete="current-password" aria-label="That account’s password"><div class="row"><button class="b" data-act="cloudAdopt" ${dis}>Use this cloud</button><button class="x" data-act="cloudOut">Sign out</button></div></div>`
+ :need?`<p class="meta">${need}</p>${!ACCT?`<div class="row" style="margin:6px 0 0"><button class="g" data-act="cloudJoin" ${dis}>This cloud has my data</button></div>`:''}`:''}
+${plans}${cloudErr&&!cloudMismatch?`<p class="meta mirerr">${esc(cloudErr)}</p>`:''}<div class="row" style="margin-top:10px"><button class="x" data-act="cloudOut">Sign out</button></div></section>`};
+
+cloudSoon(2500);// first round shortly after opening (skipped while locked)

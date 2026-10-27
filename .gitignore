@@ -13,3 +13,7 @@ key.properties
 .DS_Store
 .idea/
 .vscode/
+# Prodify Cloud: local secrets and Wrangler's local state
+cloud/.dev.vars
+cloud/.wrangler/
+cloud/node_modules/

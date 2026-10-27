@@ -1,0 +1,16 @@
+# Prodify Cloud (Cloudflare Worker). See README.md for setting it up on your Cloudflare account.
+name = "prodify-cloud"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "prodify-cloud"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "BLOBS"
+bucket_name = "prodify-cloud"
+
+[vars]
+MAIL_FROM = "Prodify <onboarding@resend.dev>"

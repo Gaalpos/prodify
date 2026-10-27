@@ -2230,3 +2230,12 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .mhero{gap:12px}.mhart{width:64px;height:64px;border-radius:12px}.mhart .sym{width:30px;height:30px}
 .mhtxt{min-width:0}.mhtxt b{font-size:18px}.mhctl{flex-basis:100%}.mhplay{width:48px;height:48px}
 }
+/* Prodify Cloud */
+.cplans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 12px}
+.cplan{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 3%,var(--sf))}
+.cplan b{font-size:15px}.cplan>span:not(.meta){font-weight:700;color:var(--ac)}.cplan .meta{font-size:12px}
+.cplan.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--sf))}
+.cuse{height:8px;border-radius:999px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden}.cuse span{display:block;height:100%;background:var(--ac);border-radius:999px}
+.cadv{margin-top:10px}.cadv summary{cursor:pointer}.cadv input{flex:1;min-width:0}
+.cloudsec #cloudemail{flex:1;min-width:0}.cloudsec #cloudcode{width:160px;letter-spacing:.3em;font-size:18px;text-align:center}
+.cloudsec .accav .sym{width:22px;height:22px}

@@ -26,7 +26,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "font-src": "'self'",
         "img-src": "'self' data: blob: asset: http://asset.localhost https://covers.openlibrary.org https://*.archive.org https://static.tvmaze.com https://s4.anilist.co https://image.tmdb.org https://media.rawg.io https://raw.githubusercontent.com https://wger.de https://icons.duckduckgo.com https://somafm.com https://api.somafm.com",
-        "connect-src": "ipc: http://ipc.localhost https://openlibrary.org https://api.tvmaze.com https://graphql.anilist.co https://api.themoviedb.org https://api.rawg.io https://covers.openlibrary.org https://*.archive.org https://static.tvmaze.com https://s4.anilist.co https://image.tmdb.org https://media.rawg.io https://wger.de https://api.open-meteo.com https://geocoding-api.open-meteo.com https://api.somafm.com",
+        "connect-src": "ipc: http://ipc.localhost https://openlibrary.org https://api.tvmaze.com https://graphql.anilist.co https://api.themoviedb.org https://api.rawg.io https://covers.openlibrary.org https://*.archive.org https://static.tvmaze.com https://s4.anilist.co https://image.tmdb.org https://media.rawg.io https://wger.de https://api.open-meteo.com https://geocoding-api.open-meteo.com https://api.somafm.com https://*.workers.dev http://localhost:8787",
         "frame-src": "'self' blob: asset: http://asset.localhost",
         "media-src": "'self' blob: data: asset: http://asset.localhost https://cdn.freesound.org https://*.somafm.com"
       },
