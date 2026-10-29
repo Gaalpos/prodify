@@ -2284,3 +2284,4 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .raat{flex:1;min-width:0;display:flex;flex-direction:column}.raat .meta{font-size:12px}
 .raap{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right}.raap b{color:#e3b341}.raap .meta{font-size:11px}
 .rasettings .lab input{width:100%;max-width:360px;box-sizing:border-box}
+.raimg{width:40px;height:40px;border-radius:6px;flex:none;background:color-mix(in srgb,var(--ink) 8%,transparent)}

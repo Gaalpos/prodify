@@ -959,6 +959,50 @@ async fn ra_api(endpoint: String, params: BTreeMap<String, String>) -> Result<St
     .map_err(|e| e.to_string())?
 }
 
+/// Calls the Steam Web API for the Games collection, with the person's own Steam Web API key (Settings → Collections).
+/// Only the methods Prodify uses are allowed. Steam answers some problems (a private profile, a game without
+/// achievements) with an error status and a JSON body; that body is handed back so the app can say what's wrong.
+#[tauri::command]
+async fn steam_api(method: String, params: BTreeMap<String, String>) -> Result<String, String> {
+    const ALLOWED: [&str; 7] = [
+        "IPlayerService/GetOwnedGames/v1",
+        "IPlayerService/GetRecentlyPlayedGames/v1",
+        "ISteamUser/ResolveVanityURL/v1",
+        "ISteamUser/GetPlayerSummaries/v2",
+        "ISteamUserStats/GetPlayerAchievements/v1",
+        "ISteamUserStats/GetSchemaForGame/v2",
+        "ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2",
+    ];
+    if !ALLOWED.contains(&method.as_str()) {
+        return Err(format!("Refusing to call {method:?}"));
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut req = ureq::get(&format!("https://api.steampowered.com/{method}/"))
+            .timeout(std::time::Duration::from_secs(30));
+        for (k, v) in &params {
+            req = req.query(k, v);
+        }
+        match req.call() {
+            Ok(resp) => resp.into_string().map_err(|e| e.to_string()),
+            Err(ureq::Error::Status(code, resp)) => {
+                let body = resp.into_string().unwrap_or_default();
+                if body.trim_start().starts_with('{') {
+                    Ok(body)
+                } else if code == 401 || code == 403 {
+                    Err("Steam didn't accept that key. Check the Steam Web API key in Settings.".into())
+                } else if code == 429 {
+                    Err("Steam is busy. Try again in a little while.".into())
+                } else {
+                    Err(format!("Steam answered {code}"))
+                }
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[derive(Serialize)]
 struct StorageSwitch {
     files: usize,
@@ -1142,6 +1186,7 @@ pub fn run() {
             mirror_files,
             storage_switch,
             ra_api,
+            steam_api,
             read_attachment,
             list_attachments,
             open_temp_file,
