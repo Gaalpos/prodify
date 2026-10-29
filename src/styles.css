@@ -2269,3 +2269,18 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .sttags{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px 0 14px}.sttags>.meta{display:inline-flex;align-items:center;gap:4px;margin-right:2px}.sttags>.meta .sym{width:14px;height:14px}
 .sttagedit{display:flex;flex-direction:column;align-items:stretch;gap:8px}.sttagedit #sttags{flex:1;min-width:0}
 .sttagsugg{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+/* RetroAchievements: progress on game covers, and the achievements on a game's page */
+.raprog{position:absolute;left:6px;right:6px;bottom:6px;height:5px;border-radius:999px;background:rgba(0,0,0,.55);overflow:hidden;z-index:2}.raprog i{display:block;height:100%;background:#e3b341;border-radius:999px}
+.raprog.mast i{background:#f2c94c}
+.ramedal{position:absolute;left:6px;top:6px;z-index:2;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#f2c94c;font-size:13px}.ramedal .sym{width:14px;height:14px}
+.ccov .cfav~.ramedal{top:40px}
+.rabox{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 3%,var(--sf))}
+.rahead{display:flex;align-items:center;gap:10px;margin:0 0 8px}.rahead>div{flex:1;min-width:0;display:flex;flex-direction:column}
+.rabox .cuse span{background:#e3b341}
+.ralist{display:flex;flex-direction:column;gap:2px;margin-top:10px;max-height:420px;overflow-y:auto}
+.raach{display:flex;align-items:center;gap:10px;padding:6px 4px;border-radius:8px}.raach+.raach{border-top:1px solid var(--line)}
+.raach img{width:40px;height:40px;border-radius:6px;flex:none;background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.raach:not(.got) img{opacity:.55}.raach:not(.got) .raat b{color:var(--mut)}
+.raat{flex:1;min-width:0;display:flex;flex-direction:column}.raat .meta{font-size:12px}
+.raap{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right}.raap b{color:#e3b341}.raap .meta{font-size:11px}
+.rasettings .lab input{width:100%;max-width:360px;box-sizing:border-box}

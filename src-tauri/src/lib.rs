@@ -928,6 +928,37 @@ async fn mirror_files(
     Ok(MirrorResult { written, attachments: copied })
 }
 
+/// Calls the RetroAchievements Web API for the Games collection (Settings → Collections holds the person's own
+/// username and API key, which RetroAchievements needs on every call). Only the endpoints Prodify uses are allowed.
+#[tauri::command]
+async fn ra_api(endpoint: String, params: BTreeMap<String, String>) -> Result<String, String> {
+    const ALLOWED: [&str; 5] = [
+        "API_GetUserProfile",
+        "API_GetUserCompletionProgress",
+        "API_GetUserRecentlyPlayedGames",
+        "API_GetGameInfoAndUserProgress",
+        "API_GetUserAwards",
+    ];
+    if !ALLOWED.contains(&endpoint.as_str()) {
+        return Err(format!("Refusing to call {endpoint:?}"));
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut req = ureq::get(&format!("https://retroachievements.org/API/{endpoint}.php"))
+            .timeout(std::time::Duration::from_secs(30));
+        for (k, v) in &params {
+            req = req.query(k, v);
+        }
+        let resp = req.call().map_err(|e| match e {
+            ureq::Error::Status(401, _) | ureq::Error::Status(403, _) => "RetroAchievements didn't accept that username and key".to_string(),
+            ureq::Error::Status(code, _) => format!("RetroAchievements answered {code}"),
+            other => other.to_string(),
+        })?;
+        resp.into_string().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[derive(Serialize)]
 struct StorageSwitch {
     files: usize,
@@ -1110,6 +1141,7 @@ pub fn run() {
             set_data_dir,
             mirror_files,
             storage_switch,
+            ra_api,
             read_attachment,
             list_attachments,
             open_temp_file,
