@@ -1,6 +1,6 @@
 [package]
 name = "prodify"
-version = "1.9.0"
+version = "1.10.0"
 description = "Notes, journal, tasks, projects and habits, stored as Markdown"
 edition = "2021"
 
