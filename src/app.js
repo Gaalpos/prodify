@@ -3210,7 +3210,9 @@ document.addEventListener('input',e=>{const t=e.target,f=t.dataset&&t.dataset.co
  if(t.id==='cols'){colSQ=t.value;return}
  if(t.id==='colsort'){colSort=CFG.colSort=t.value;saveCfg();render();return}
  if(t.id==='tmdbkey'||t.id==='rawgkey'){CFG[t.id==='tmdbkey'?'tmdbKey':'rawgKey']=t.value.trim();saveCfg();return}
- if(t.id==='rauser'||t.id==='rakey'){const nv=t.value.trim(),k2=t.id==='rauser'?'raUser':'raKey';if(nv!==(CFG[k2]||'')){CFG[k2]=nv;if(k2==='raUser')delete CFG.raUlid;raMsg='';saveCfg()}return}});
+ if(t.id==='rauser'||t.id==='rakey'){const nv=t.value.trim(),k2=t.id==='rauser'?'raUser':'raKey';if(nv!==(CFG[k2]||'')){CFG[k2]=nv;if(k2==='raUser')delete CFG.raUlid;raMsg='';saveCfg()}
+  // the buttons turn on as soon as both are filled in (the page isn't redrawn while typing)
+  document.querySelectorAll('.rasettings [data-act="raTest"],.rasettings [data-act="raSync"]').forEach(x=>x.disabled=!raOn()||(x.dataset.act==='raSync'&&raBusy));return}});
 document.addEventListener('input',e=>{const t=e.target;if(t.id==='pnm'){PN.name=t.value;return}
  if(t.dataset&&t.dataset.pcolor!==undefined){const c=document.querySelector(`.pcard[data-pk="${CSS.escape(t.dataset.pcolor)}"]`);if(c)c.style.setProperty('--tc',vivid(t.value));const sw=t.closest('.swcustom');if(sw)sw.style.background=t.value;return}
  if(t.dataset&&t.dataset.stickycolor!==undefined){const it=document.querySelector(`#hboard [data-bid="note:${CSS.escape(t.dataset.stickycolor)}"]`);if(it){it.style.setProperty('--sc',t.value);it.style.setProperty('--sink',stcInk(t.value))}const sw=t.closest('.swcustom');if(sw)sw.style.background=t.value;return}
@@ -4718,7 +4720,7 @@ let raBusy=false,raMsg='',RAG={};
 const raOn=()=>!!(CFG.raUser&&CFG.raKey);
 async function raApi(endpoint,params){const p={y:CFG.raKey,...params};
  const t=TAURI?await TAURI.invoke('ra_api',{endpoint,params:Object.fromEntries(Object.entries(p).map(([k,v])=>[k,String(v)]))})
-  :await (async()=>{const r=await fetch(`https://retroachievements.org/API/${endpoint}.php?`+new URLSearchParams(p));if(!r.ok)throw new Error('RetroAchievements answered '+r.status);return r.text()})();
+  :await (async()=>{const r=await fetch(`https://retroachievements.org/API/${endpoint}.php?`+new URLSearchParams(p));if(r.status===401||r.status===403)throw new Error('RetroAchievements didn’t accept that username and key. The key is the long Web API key from Settings → Keys on retroachievements.org, not your password.');if(!r.ok)throw new Error('RetroAchievements answered '+r.status);return r.text()})();
  let j;try{j=JSON.parse(t)}catch(e){throw new Error('RetroAchievements sent something unexpected')}if(j&&j.Error)throw new Error(j.Error);return j}
 // Usernames can change, so the permanent id (ULID) is looked up once and used after that.
 async function raUser(){if(CFG.raUlid)return CFG.raUlid;const pr=await raApi('API_GetUserProfile',{u:CFG.raUser});if(!pr||!pr.User)throw new Error('No RetroAchievements user called '+CFG.raUser);if(pr.ULID){CFG.raUlid=pr.ULID;saveCfg()}return pr.ULID||CFG.raUser}
@@ -4759,7 +4761,7 @@ ${!raOn()?'<p class="meta">Add your RetroAchievements username and key in Settin
 const raSettings=()=>`<div class="rasettings"><p class="meta" style="margin:14px 0 6px"><b>RetroAchievements</b> imports your games and achievement progress into Games and keeps them up to date.</p>
 <label class="meta lab" style="margin-bottom:8px">Username <input id="rauser" value="${esc(CFG.raUser||'')}" autocomplete="off" spellcheck="false" placeholder="Not set"></label>
 <label class="meta lab" style="margin-bottom:8px">Web API key <input id="rakey" type="password" value="${esc(CFG.raKey||'')}" autocomplete="off" spellcheck="false" placeholder="Not set"></label>
-<div class="row" style="margin:0"><button class="x" data-act="col:link" data-val="https://retroachievements.org/controlpanel.php" style="margin-left:-6px">Get your key (Settings → Keys) ${sym('arrow-square-out')}</button><button class="g" data-act="raTest" ${raOn()?'':'disabled'}>Test connection</button>${raOn()?`<button class="g" data-act="raSync" ${raBusy?'disabled':''}>${raBusy?'Syncing…':'Sync now'}</button>`:''}</div>
+<div class="row" style="margin:0"><button class="x" data-act="col:link" data-val="https://retroachievements.org/controlpanel.php" style="margin-left:-6px">Get your key (Settings → Keys) ${sym('arrow-square-out')}</button><button class="g" data-act="raTest" ${raOn()?'':'disabled'}>Test connection</button><button class="g" data-act="raSync" ${raOn()&&!raBusy?'':'disabled'}>${raBusy?'Syncing…':'Sync now'}</button></div>
 ${raMsg?`<p class="meta ${/^Connected/.test(raMsg)?'':'mirerr'}" style="margin:6px 0 0">${esc(raMsg)}</p>`:CFG.raLast?`<p class="meta" style="margin:6px 0 0">Last synced ${fmt(new Date(CFG.raLast).toISOString().slice(0,10))}</p>`:''}</div>`;
 // Opening Games syncs on its own at most every 30 minutes.
 const raAuto=()=>{if(raOn()&&!raBusy&&Date.now()-(CFG.raLast||0)>30*60000)raSync(true)};

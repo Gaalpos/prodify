@@ -949,7 +949,7 @@ async fn ra_api(endpoint: String, params: BTreeMap<String, String>) -> Result<St
             req = req.query(k, v);
         }
         let resp = req.call().map_err(|e| match e {
-            ureq::Error::Status(401, _) | ureq::Error::Status(403, _) => "RetroAchievements didn't accept that username and key".to_string(),
+            ureq::Error::Status(401, _) | ureq::Error::Status(403, _) => "RetroAchievements didn't accept that username and key. The key is the long Web API key from Settings → Keys on retroachievements.org, not your password.".to_string(),
             ureq::Error::Status(code, _) => format!("RetroAchievements answered {code}"),
             other => other.to_string(),
         })?;
