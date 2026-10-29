@@ -1861,7 +1861,7 @@ const ONBF=[
  ['music','Listen to radio stations and mix ambient sounds while you work. Needs an internet connection.',['Lofi, ambient and jazz radio','Rain, waves, fire and more','A player in the sidebar']]];
 let ONB=null;
 // The account step shows when setup starts without an account or a cloud sign-in (and stays while it's in use).
-const onbSteps=()=>{if(ONB&&ONB.accStep===undefined)ONB.accStep=!ACCT&&!cloudOn();return ['welcome',...(ONB&&ONB.accStep?['account']:[]),...ONBF.map(f=>f[0]),'look','done']};
+const onbSteps=()=>{if(ONB&&ONB.accStep===undefined)ONB.accStep=!ACCT&&!cloudOn();return ['welcome',...(ONB&&ONB.accStep?['account']:[]),...ONBF.map(f=>f[0]),'look','connect','done']};
 // Shows setup on first launch. Off while developing; set to true before building a release.
 const ONB_AUTO=false;
 function onbShow(){let o=$('onb');if(!ONB){if(o)o.remove();document.body.classList.remove('onboarding');return}
@@ -1876,6 +1876,7 @@ ${L('What should we call you?')}<input id="onbname" value="${esc(CFG.name||'')}"
 <div class="onblang">${L('Language')}${seg('lang',[['en','English'],['es','Español']],CFG.lang==='es'?'es':'en')}</div>
 <div class="onbnav"><button class="b onbbig" data-act="onbNext">Let’s go${lineIco('M9 5l7 7-7 7')}</button></div>`;
  else if(id==='account')body=onbAccBody();
+ else if(id==='connect')body=onbConnBody();
  else if(fi>=0){const f=ONBF[fi],t=TABS.find(x=>x[0]===id),on=secOn(id);
   body=`<p class="meta onbcount">Feature ${fi+1} of ${n}</p>${icon(id)}<h1>${t[1]}</h1><p class="onbdesc">${f[1]}</p><ul class="onbpts">${f[2].map(x=>`<li>${lineIco('M5 12.5l4.5 4.5L19 7')}<span>${x}</span></li>`).join('')}</ul>
 <p class="meta">Do you want to use ${t[1]}?</p><div class="onbnav two"><button class="g onbbig ${!on?'chosen':''}" data-act="onbPick" data-id="${id}" data-val="off">Not now</button><button class="b onbbig ${on?'chosen':''}" data-act="onbPick" data-id="${id}" data-val="on">${lineIco('M5 12.5l4.5 4.5L19 7')}Use ${t[1]}</button></div>`}
@@ -1914,6 +1915,17 @@ ${A.pw?`<div class="onbfields">${onbPw(true)}<div class="swrow"><span>Encrypt my
  else if(A.step==='create'||!ACCT){more=`<div class="onbfields"><p style="margin:0">Choose a password for your account. Everything is encrypted on this ${TAURI?'device':'browser'} before it’s uploaded, so nobody else can read it.</p>${onbPw(true)}</div>`;next=`<button class="b onbbig" data-act="onbCloudCreate" ${dis}>${A.busy?'Creating…':'Create account'}${lineIco('M9 5l7 7-7 7')}</button>`}
  else{more=`<div class="onbfields onbok">${lineIco('M5 12.5l4.5 4.5L19 7')}<span>Signed in as <b data-notr>${esc(CFG.cloud.email||'')}</b> · your data syncs on the ${(PLANL[(CFG.cloud.me||{}).plan]||'Free')} plan.</span></div>`;next=`<button class="b onbbig" data-act="onbNext">Continue${lineIco('M9 5l7 7-7 7')}</button>`}
  return `<h1>How do you want to keep your data?</h1><p class="onbdesc">You can change this later in Settings → Account and data.</p>${cards}${more}${A.err?`<p class="meta mirerr">${esc(A.err)}</p>`:''}<div class="onbnav">${next}</div>`}
+/* Setup's optional "Connect your accounts" step: the services from Settings → Connections and AI, each opening to
+   the same fields as in Settings (saved as you type). Game and movie services show when Collections is on; Steam and
+   the AI key only in the app. */
+function onbConnBody(){const cx=ONB.cx||'',col=secOn('collections');
+ const row=(id,icon,title,desc,done,body)=>`<div class="onbconn ${cx===id?'open':''}"><button class="onbopt ${done?'on':''}" data-act="onbConn" data-val="${id}" aria-expanded="${cx===id}"><span class="onboptico">${icon}</span><span class="onbopttx"><b>${title}${done?' <span class="onbtag plus">Connected</span>':''}</b><span class="meta">${desc}</span></span>${lineIco(cx===id?'M6 15l6-6 6 6':'M6 9l6 6 6-6')}</button>${cx===id?`<div class="onbconnbody">${body}</div>`:''}</div>`;
+ const rows=[col?row('ra',uiIco('trophy','🏆'),'RetroAchievements','Import your retro games and achievement progress into Games.',raOn()&&/^Connected/.test(raMsg||'Connected'),raSettings()):'',
+  col&&TAURI?row('steam',uiIco('game-controller','🎮'),'Steam','Import the games you’ve played, with playtime and achievements.',smOn(),smSettings()):'',
+  col?row('cat',uiIco('film-strip','🎬'),'Movies and games catalogs','Free keys for TMDB (movies) and RAWG (games), to find covers and details when you add them.',!!(CFG.tmdbKey||CFG.rawgKey),colSettings().replace(/\$\{raSettings\(\)\}|<div class="rasettings[\s\S]*$/,'')):'',
+  row('ai',uiIco('sparkle','✨'),'AI','Journal questions and help with your notes, with your own Anthropic key.',aiOn()&&!!(CFG.aiKey||'').trim(),`<div class="swrow"><span>Use AI <span class="meta">Off: nothing is sent to an AI service.</span></span>${swBtn(aiOn(),'data-act="onbAiT"','Use AI')}</div>${aiOn()?aiKeyBody()||'<p class="meta">The AI key can be added in the Prodify app.</p>':''}`)].join('');
+ return `${lineIco('M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7').replace('class="sym"','class="sym onbkey"')}<h1>Connect your accounts</h1><p class="onbdesc">Optional. Link services so Prodify can fill in your games, movies and journal questions. You can do this later in Settings → Connections and AI.</p>
+<div class="onbacc">${rows}</div><div class="onbnav two"><button class="g onbbig" data-act="onbNext">Skip for now</button><button class="b onbbig" data-act="onbNext">Continue${lineIco('M9 5l7 7-7 7')}</button></div>`}
 const onbSave=()=>{const n=$('onbname');if(n&&n.value.trim()!==(CFG.name||'')){CFG.name=n.value.trim();saveCfg()}};
 /* Backups: a JSON snapshot of every file, kept in <folder>/.prodify-backups (newest 7) in the app, or in IndexedDB in a
    browser. One runs automatically each day (CFG.autoBackup, on by default); any of them can be restored. Photos and PDFs
@@ -3875,9 +3887,9 @@ else if(a==='cloudAdopt'){const pw=($('cloudpw')||{}).value||'';cloudBusy=true;r
 else if(a==='raSync'){raSync(false);render();return}
 else if(a==='smSync'){smSync(false);render();return}
 else if(a==='gamesSync'){(async()=>{if(raOn())await raSync(false);if(smOn())await smSync(false)})();render();return}
-else if(a==='smTest'){smTest();return}
+else if(a==='smTest'){const p=smTest();if(ONB){onbShow();p.then(()=>{if(ONB)onbShow()})}return}
 else if(a==='smAchLoad'){smLoadGame(b.dataset.val,true);return}
-else if(a==='raTest'){raTest();return}
+else if(a==='raTest'){const p=raTest();if(ONB){onbShow();p.then(()=>{if(ONB)onbShow()})}return}
 else if(a==='raAchLoad'){raLoadGame(b.dataset.val,true);return}
 else if(a==='storeDb'){storeSwitch('db');return}
 else if(a==='storeMd'){storeSwitch('md');return}
@@ -3916,6 +3928,8 @@ else if(a==='lockIdle'){if(CFG.lock){CFG.lock.idle=+b.dataset.val;saveCfg()}}
 else if(a==='lockNow'){PWLOCK=true;lockShow();return}
 else if(a==='onbFreshSet'){onbAccSync();onbA().fresh=b.dataset.val==='1';onbShow();return}
 else if(a==='onbFreshGo'){onbSave();CFG.onboarded=true;saveCfg();ONB=null;onbShow();userFresh(CFG.name||'New user','onb');return}
+else if(a==='onbConn'){ONB.cx=ONB.cx===b.dataset.val?'':b.dataset.val;onbShow();return}
+else if(a==='onbAiT'){CFG.aiUse=!aiOn();saveCfg();onbShow();return}
 else if(a==='onbAcc'){onbAccSync();const A=onbA();A.mode=b.dataset.val;A.err='';onbShow();return}
 else if(a==='onbPwT'){onbAccSync();const A=onbA();A.pw=!A.pw;onbShow();if(A.pw)setTimeout(()=>{const i=$('onbpw');if(i)i.focus()});return}
 else if(a==='onbEncT'){onbAccSync();onbA().enc=!onbA().enc;onbShow();return}
@@ -3944,7 +3958,7 @@ else if(a==='aiClose'){AIN=null}
 else if(a==='aiSumAdd'){if(AIN&&FS[AIN.k]){const n=readNote(FS[AIN.k]);n.body=n.body.replace(/\s*$/,'')+`\n\n## Summary\n\n${AIN.text}\n`;FS[AIN.k]=writeNote(n);ND=null;AIN=null;toast('Summary added')}}
 else if(a==='aiCat'){if(AIN&&FS[AIN.k]){const n=readNote(FS[AIN.k]),c=b.dataset.v;n.fm.categories=[...new Map([...(n.fm.categories||[]),c].map(x=>[String(x).toLowerCase(),x])).values()];FS[AIN.k]=writeNote(n);ND=null;AIN.items=AIN.items.filter(x=>x!==c);toast('Category added')}}
 else if(a==='aiTasksAdd'){if(AIN){putTasks(tasks().concat(AIN.items.map(t=>({done:false,title:t,due:'',rem:'',proj:'',list:'',added:TD()}))));toast(`${AIN.items.length} task${AIN.items.length===1?'':'s'} added`);AIN=null}}
-else if(a==='aiKeySave'){const kk=v('aikey');if(!kk){toast('Paste your API key first');return}CFG.aiKey=kk;saveCfg();toast('API key saved')}
+else if(a==='aiKeySave'){const kk=v('aikey');if(!kk){toast('Paste your API key first');return}CFG.aiKey=kk;saveCfg();toast('API key saved');if(ONB){onbShow();return}}
 else if(a==='aiKeyDel'){delete CFG.aiKey;saveCfg();toast('API key removed')}
 else if(a==='aiTest'){const S=aiFn();if(!S)return;toast('Testing…');S('Reply with the single word: ready',{modelTier:'quick',cache:false}).then(r=>toast('Connected · '+String(r.text||'').trim().slice(0,30))).catch(e=>toast('AI: '+(e&&e.message||e)));return}
 else if(a==='moodQUse'){const t=$('jt'),q2=b.dataset.v;if(t){const cur=t.value;t.value=(cur.trim()?cur.replace(/\s*$/,'')+'\n\n':'')+q2+'\n';t.focus();t.setSelectionRange(t.value.length,t.value.length)}return}

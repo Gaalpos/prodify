@@ -2285,3 +2285,8 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .raap{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right}.raap b{color:#e3b341}.raap .meta{font-size:11px}
 .rasettings .lab input{width:100%;max-width:360px;box-sizing:border-box}
 .raimg{width:40px;height:40px;border-radius:6px;flex:none;background:color-mix(in srgb,var(--ink) 8%,transparent)}
+/* Setup: Connect your accounts */
+.onbconn{display:flex;flex-direction:column}.onbconn>.onbopt{align-items:center}.onbconn>.onbopt>.sym{width:16px;height:16px;color:var(--mut);flex:none}
+.onbconn.open>.onbopt{border-bottom-left-radius:6px;border-bottom-right-radius:6px}
+.onbconnbody{margin:6px 0 2px;padding:10px 14px 14px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 3%,var(--sf))}
+.onbconnbody .rasettings>p:first-child{margin-top:0!important}.onbconnbody .lab input{max-width:none}
