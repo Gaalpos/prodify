@@ -13,4 +13,4 @@ binding = "BLOBS"
 bucket_name = "prodify-cloud"
 
 [vars]
-MAIL_FROM = "Prodify <onboarding@resend.dev>"
+MAIL_FROM = "Prodify <login@gaalpos.com>"
