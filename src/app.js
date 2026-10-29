@@ -2837,7 +2837,11 @@ function setSplit(){const t=document.createElement('template'),by={};t.innerHTML
  SETGROUPS.forEach(([id,,,,ks])=>{if(by[id])by[id].sort((a,b)=>(ks.indexOf(a._k)+1||99)-(ks.indexOf(b._k)+1||99))});return by}
 const setTiles=by=>`<div class="setgrid">${SETGROUPS.map(([id,l,ic,em,,d])=>{const vis=(by[id]||[]).filter(el=>!el.hidden);if(!vis.length)return '';
  return `<button class="settile" data-act="setGroup" data-v="${id}"><span class="setico">${uiIco(ic,em)}</span><span class="settxt"><b>${l}</b><span class="meta">${d}</span></span>${lineIco('M9 5l7 7-7 7')}</button>`}).join('')}</div>`;
-V.settings=()=>{if(SETG&&!setQ.trim()){const g=SETGROUPS.find(x=>x[0]===SETG),by=setSplit();if(g)return `<div class="lnav">${backBtn('setGroup','Back to settings','Settings')}</div><h1 class="h1i">${uiIco(g[2],g[3])}${g[1]}</h1>${(by[g[0]]||[]).map(el=>{const h=el.querySelector('h2');if(h&&h.textContent.trim()===g[1])h.remove();return el.outerHTML}).join('')}`;SETG=null}
+// The installed version, shown at the bottom right of Settings (the desktop and phone apps report it; the preview says so).
+let APPVER='';try{if(TAURI&&window.__TAURI__.app)window.__TAURI__.app.getVersion().then(v=>{APPVER=v;if(view==='settings')rerenderKeep()}).catch(()=>{})}catch(e){}
+const verLine=()=>`<p class="appver" data-notr>Prodify ${APPVER?esc(APPVER):TAURI?'':'· preview'}</p>`;
+V.settings=()=>V.settingsPage()+verLine();
+V.settingsPage=()=>{if(SETG&&!setQ.trim()){const g=SETGROUPS.find(x=>x[0]===SETG),by=setSplit();if(g)return `<div class="lnav">${backBtn('setGroup','Back to settings','Settings')}</div><h1 class="h1i">${uiIco(g[2],g[3])}${g[1]}</h1>${(by[g[0]]||[]).map(el=>{const h=el.querySelector('h2');if(h&&h.textContent.trim()===g[1])h.remove();return el.outerHTML}).join('')}`;SETG=null}
  return `<h1>Settings</h1><p class="sub">Saved ${TAURI?'on this computer':'in this browser'}. Your notes and journal are not affected by these.</p>
 <div class="hsearch setsearch">${sym('magnifying-glass')}<input id="setq" value="${esc(setQ)}" placeholder="Search settings" aria-label="Search settings" autocomplete="off">${setQ?'<button class="x" data-act="setqClear" aria-label="Clear search">Clear</button>':''}</div>
 ${setQ.trim()?setSearch():setTiles(setSplit())}`};
@@ -4542,7 +4546,7 @@ window.addEventListener('popstate',()=>{inBack=true;let done=false;try{done=appB
    sync, with the last synced version as the base), then pushes local changes "only if the cloud copy is still the
    one I last saw", so nothing is overwritten. Deletes travel as tombstones. CFG.cloud keeps the server, session and
    position; the bases are kept, encrypted, under the "prodify.cloudbase" setting. */
-const CLOUD_DEFAULT='';// the server's address once it's deployed (until then, set it in Settings → Account and data)
+const CLOUD_DEFAULT='https://prodify-cloud.gaalpos.workers.dev';// Prodify Cloud (cloud/ in the repository); Settings → Account and data → Server can point elsewhere
 const PLANL={free:'Free',basic:'Basic',pro:'Pro'};
 let CS=null,cloudBusy=false,cloudTimer=null,CLOUDUI=null,cloudErr='',cloudFull=false,cloudMismatch=null;
 const cloudUrl=()=>((CFG.cloud&&CFG.cloud.url)||CFG.cloudUrl||CLOUD_DEFAULT||'').replace(/\/+$/,'');

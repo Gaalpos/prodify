@@ -2239,3 +2239,6 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .cadv{margin-top:10px}.cadv summary{cursor:pointer}.cadv input{flex:1;min-width:0}
 .cloudsec #cloudemail{flex:1;min-width:0}.cloudsec #cloudcode{width:160px;letter-spacing:.3em;font-size:18px;text-align:center}
 .cloudsec .accav .sym{width:22px;height:22px}
+/* Settings: the app version, bottom right */
+.appver{margin:18px 2px 4px;text-align:right;font-size:12px;color:var(--mut);opacity:.8}
+@media (max-width:760px){.appver{margin-bottom:8px}}

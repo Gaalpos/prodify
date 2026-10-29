@@ -6,7 +6,7 @@ compatibility_date = "2026-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "prodify-cloud"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "2b01a0af-3ddc-495f-83bc-f9fdfcc8356d"
 
 [[r2_buckets]]
 binding = "BLOBS"
