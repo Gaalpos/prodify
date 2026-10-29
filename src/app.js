@@ -978,10 +978,9 @@ function redraw(){const ids=['jt','jloc','qa0','tt','nb'],vs=ids.map(i=>$(i)&&$(
 // Home columns: 2, 3 or 4, or Auto (the default): 4 when Home is at least 1750 px wide (a full-screen 2K monitor), else 3.
 const homeColsCfg=()=>[2,3,4].includes(+CFG.homeCols)?+CFG.homeCols:'auto';
 function layoutHome(want){const g=document.querySelector&&document.querySelector('.hgrid');if(!g||!g.children.length)return;if(want==='auto')want=g.clientWidth>=1750?4:3;
- // never more columns than cards, so a few cards still span the full width
- // columns: the chosen number, fewer on narrow screens (one full-width column below 700px); with only a few cards no more columns than cards,
- // but always at least two when there is room, so a single card takes at most half the width
- const cards=[...g.children].filter(c=>!c.hidden),fit=g.clientWidth<700?1:Math.max(1,Math.min(want||3,Math.floor((g.clientWidth+16)/276))),n=Math.max(1,Math.min(fit,Math.max(cards.length,2))),cw=(g.clientWidth-16*(n-1))/n;
+ // columns: always the chosen number, however few cards there are (a single card keeps its column's width);
+ // fewer only when they don't fit (one full-width column below 700px)
+ const cards=[...g.children].filter(c=>!c.hidden),fit=g.clientWidth<700?1:Math.max(1,Math.min(want||3,Math.floor((g.clientWidth+16)/276))),n=fit,cw=(g.clientWidth-16*(n-1))/n;
  cards.forEach(c=>{c.style.flex='none';c.style.width=cw+'px'});
  const hts=cards.map(c=>c.offsetHeight),cols=Array.from({length:n},()=>{const el=document.createElement('div');el.className='hcol';return{el,h:0}});
  // Keep cards in their column (CFG.homeFixed): each card goes to the column it was dropped in (CFG.homeColOf, clamped to
