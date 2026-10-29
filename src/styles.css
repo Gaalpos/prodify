@@ -2307,3 +2307,9 @@ body.shine .ccard:hover .ccov:not(.tilt){transform:none;box-shadow:none}
 .caltgame{align-items:start;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
 .caltgame .caltc img{aspect-ratio:auto;height:auto;max-height:200px;object-fit:contain}
 .caltgame .caltup .caltbox{aspect-ratio:4/3}
+/* Card size slider (--csz is a percentage of the normal card width) */
+.cardsz{display:inline-flex;align-items:center;gap:6px;margin-left:auto;color:var(--mut)}
+.cardsz .sym{width:14px;height:14px;flex:none}.cardsz .sym:last-child{width:18px;height:18px}
+.cardsz input[type=range]{width:110px;accent-color:var(--ac);height:16px;margin:0;padding:0;border:0;background:none}
+.cgrid,.stcards{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(170px * var(--csz,100) / 100)),1fr))}
+@media (max-width:760px){.cgrid{grid-template-columns:repeat(auto-fill,minmax(calc(76px * var(--csz,100) / 100),1fr))}.cardsz input[type=range]{width:90px}}
