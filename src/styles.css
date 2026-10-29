@@ -2264,3 +2264,8 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .onbbody>h1+.onbdesc{margin-bottom:10px}
 .accchoice{margin:0 0 6px}.accsec .accchoice .onbopt{padding:12px 14px}
 .setfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 4px}.setfoot .appver{margin:0}
+/* Storage: link tags */
+.stmk.tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--ac) 14%,transparent);color:var(--ac)}.stmk.tag.on{background:var(--ac);color:var(--onac)}
+.sttags{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px 0 14px}.sttags>.meta{display:inline-flex;align-items:center;gap:4px;margin-right:2px}.sttags>.meta .sym{width:14px;height:14px}
+.sttagedit{display:flex;flex-direction:column;align-items:stretch;gap:8px}.sttagedit #sttags{flex:1;min-width:0}
+.sttagsugg{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
