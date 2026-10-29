@@ -83,7 +83,7 @@ const save=()=>{if(LOCKED||!ACCREADY)return;
   if(TAURI)await TAURI.invoke('sync_files',{write,remove});else{remove.forEach(k=>delete LSRAW[k]);Object.assign(LSRAW,write);localStorage.setItem(K+USUF,JSON.stringify(LSRAW))}
   gone.forEach(k=>{delete DISK[k];delete RAW[k];delete DISKK[k]});Object.assign(DISK,plain);for(const k in plain){RAW[k]=write[dks[k]];DISKK[k]=dks[k];NEEDW.delete(k)}if(typeof mirSoon==='function')mirSoon();if(typeof cloudSoon==='function')cloudSoon()},'your files')};
 const HERE=TAURI?'in your Prodify folder':'in this browser';
-const DEF={searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
+const DEF={aiUse:true,searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
 let CFG={...DEF};
 try{Object.assign(CFG,JSON.parse(store.get('daybook.settings.v1'+USUF)||'{}'))}catch(e){}
 // Category covers became the default view; switch an old Tiles default over once.
@@ -477,7 +477,7 @@ const jMoodPick=lab=>`<div class="jmood">${lab?'<span class="meta">How do you fe
    and optional writing. Without text, Save only logs a mood check-in (journal/moods.md); with text it also
    saves a journal entry with the same mood and emotions. mode: none = Home, 1 = Journal New entry, 2 = Emotions tab. */
 const writeBox=mode=>{const inJ=mode===1,today=mode?[]:moodsRead().filter(x=>x.d===TD()).reverse();return `<section${inJ?' class="jnew"':' class="feelbox"'}><h2>${inJ?'New entry':'How are you feeling?'}</h2>${jMoodPick(inJ)}${JM||JEMO.length?`<div class="emowrap"><span class="meta">What are you feeling? <span class="meta">(optional)</span>${JEMO.length?` <b>${JEMO.length}</b>`:''}</span>${emoChips(JEMO,'jeEmo')}</div>`:''}${moodQ(JM)}<textarea id="jt" placeholder="${inJ?'Start anywhere. You can paste photos here too.':'Write about it (optional). Adds a journal entry. You can paste photos too.'}"></textarea>${JIMG.length?`<div class="jpend">${JIMG.map((x,i)=>`<span class="jth"><img src="${x.url}" alt="Photo ${i+1}"><button class="cx" data-act="jimgDel" data-i="${i}" aria-label="Remove photo ${i+1}">×</button></span>`).join('')}</div>`:''}${jCatPick('new',JC)}<label class="jlocin">${sym('map-pin')}<input id="jloc" placeholder="Add location" list="dl-places" autocomplete="off" aria-label="Location"></label><datalist id="dl-places">${places().map(x=>`<option value="${esc(x)}">`).join('')}</datalist><div class="row"><button class="b" data-act="saveJ">Save</button><button class="g" data-act="addImg">Add photos</button>${inJ?'<span style="flex:1"></span><button class="g" data-act="jNewCancel">Cancel</button>':''}</div>${today.length?`<div class="mclist">${today.map(mcRow).join('')}</div>`:''}</section>`};
-const qBox=()=>`<section><h2>Today’s question</h2><p class="q">${curQ?esc(curQ):qBusy?'Thinking of a question…':'No question right now. Ask for a new one.'}</p>${curQ&&qBusy?'<p class="meta">Finding a new question…</p>':''}${curQ&&!qBusy?`<textarea id="qa0" placeholder="Your answer is saved in Journal → Questions."></textarea>`:''}<div class="row">${curQ&&!qBusy?`<button class="b" data-act="saveQ" data-k="${esc(curQ)}" data-t="qa0">Save answer</button>`:''}<button class="g" data-act="newQ" ${qBusy?'disabled':''}>${SAMPLE&&CFG.intAi?'New question from AI':'New question'}</button></div></section>`;
+const qBox=()=>`<section><h2>Today’s question</h2><p class="q">${curQ?esc(curQ):qBusy?'Thinking of a question…':'No question right now. Ask for a new one.'}</p>${curQ&&qBusy?'<p class="meta">Finding a new question…</p>':''}${curQ&&!qBusy?`<textarea id="qa0" placeholder="Your answer is saved in Journal → Questions."></textarea>`:''}<div class="row">${curQ&&!qBusy?`<button class="b" data-act="saveQ" data-k="${esc(curQ)}" data-t="qa0">Save answer</button>`:''}<button class="g" data-act="newQ" ${qBusy?'disabled':''}>${SAMPLE&&CFG.intAi&&aiOn()?'New question from AI':'New question'}</button></div></section>`;
 const isQ=s=>/^## [^—\n]*— .+/.test(s);
 const freeText=k=>{const p=FS[k].split(/\n(?=## )/),f=p.slice(1).filter(x=>!isQ(x));return f.length?[p[0],...f].join('\n'):null};
 // A task outside the Tasks section (Home, search, projects, calendar) uses the same checklist-style row,
@@ -522,8 +522,10 @@ const topicPick=()=>{const tp=qTopics();return `<div class="moods multi qtopics"
 /* AI (Claude). Inside Claude's web app it uses the built-in connection (SAMPLE); in the desktop app it uses the person's
    own Anthropic API key (Settings → Integrations), sent from the app's backend. */
 const AIMODELS=[['claude-haiku-5-5','Haiku 5.5 · fast'],['claude-sonnet-5-5','Sonnet 5.5 · balanced'],['claude-opus-5-5','Opus 5.5 · best']];
-const aiFn=()=>SAMPLE||(TAURI&&(CFG.aiKey||'').trim()?p=>TAURI.invoke('ai_complete',{key:CFG.aiKey,model:CFG.aiModel||'claude-haiku-5-5',prompt:p,system:null,maxTokens:1500}).then(text=>({text})):null);
-async function aiQ(){const SMP=aiFn();if(!SMP||!CFG.intAi)return null;const list=allQ().concat(delLines()).slice(0,150).map(x=>'- '+x.q).join('\n'),u=used();
+// AI (Settings → AI): with "Use AI" off nothing is sent anywhere and the AI tools are hidden.
+const aiOn=()=>CFG.aiUse!==false;
+const aiFn=()=>!aiOn()?null:SAMPLE||(TAURI&&(CFG.aiKey||'').trim()?p=>TAURI.invoke('ai_complete',{key:CFG.aiKey,model:CFG.aiModel||'claude-haiku-5-5',prompt:p,system:null,maxTokens:1500}).then(text=>({text})):null);
+async function aiQ(){const SMP=aiFn();if(!SMP||!CFG.intAi||!aiOn())return null;const list=allQ().concat(delLines()).slice(0,150).map(x=>'- '+x.q).join('\n'),u=used();
  // one of the chosen topics at random, so new questions rotate through them (none chosen = anything)
  const tp=qTopics(),pick=tp.length?QTOPICS.find(x=>x[0]===tp[Math.floor(Math.random()*tp.length)]):null,focus=pick?` Focus on this area of life: ${pick[2]}.`:'';
  for(let t=0;t<2;t++){
@@ -534,7 +536,7 @@ async function aiQ(){const SMP=aiFn();if(!SMP||!CFG.intAi)return null;const list
 function keepRender(){const t=$('jt'),v=t&&t.value;render();const n=$('jt');if(n&&v)n.value=v}
 async function newQ(){if(qBusy)return;qBusy=true;keepRender();let q=null;
  try{q=await aiQ()}catch(e){}
- if(!q){q=bankQ();if(q&&CFG.intAi)toast(aiFn()?'AI didn’t give a usable question, so I used a built-in one.':'AI isn’t available here, so I used a built-in question.')}
+ if(!q){q=bankQ();if(q&&CFG.intAi&&aiOn())toast(aiFn()?'AI didn’t give a usable question, so I used a built-in one.':'AI isn’t available here, so I used a built-in question.')}
  qBusy=false;if(q)issue(q);else toast('No unused built-in questions left. Try again when AI is available.');
  save();keepRender()}
 
@@ -1052,7 +1054,7 @@ const SETS=()=>[
  ['Week starts on','calendar monday sunday saturday',()=>seg('week',[[1,'Monday'],[0,'Sunday'],[6,'Saturday']],CFG.week)],
  ['Time format','clock 12 24 hour am pm time format journal events reminders alarms',()=>seg('time',[['24','24-hour · 15:30'],['12','12-hour · 3:30 PM']],CFG.time==='12'?'12':'24')],
  ['Collections fields','metadata properties platform downloaded store device netflix steam fields per type collections',colFieldSettings],
- ['Collections API keys','tmdb rawg movies games books series anime key',colSettings],
+ ['Collections API keys','tmdb rawg movies games books series anime key connections catalog',colSettings],
  ['Commands','slash / shortcuts keywords words note task event project',cmdSettings],
  ['Where your data is kept','storage folder files location directory data save path disk vault app storage database markdown sqlite private inside',()=>(STORE_DB?'':storageBody())+storeModeBody(),'raw'],
  ['Weather city','weather city location town forecast temperature home card time clock',()=>wxSettings()],
@@ -1069,7 +1071,8 @@ const SETS=()=>[
  ['Confirm before deleting a note','delete ask notes',()=>onOff('confirmNote')],
  ['Confirm before deleting a project','delete ask projects',()=>onOff('confirmProject')],
  ['Confirm before deleting a question','delete ask journal',()=>onOff('confirmQuestion')],
- ['AI-generated questions','claude journal integrations',()=>onOff('intAi')],
+ ['Use AI','ai artificial intelligence claude anthropic off disable turn off privacy',()=>tog('aiUse',aiOn())],
+ ['AI-generated questions','claude journal integrations ai',()=>onOff('intAi')],
  ...(TAURI?[['AI connection','anthropic api key claude model haiku sonnet opus ai artificial intelligence integrations summarize categories tasks test connection',aiKeyBody,'raw']]:[]),
  ['Account and encryption','account local encryption encrypt decrypt privacy lock password recovery key security protect pin passcode hide ctrl+l idle auto lock unlock',()=>accSettings().replace(/^<section class="accsec"><h2>[^<]*<\/h2>/,'').replace(/<\/section>[\s\S]*$/,''),'raw'],
  ['Calendar view','calendar month week day layout default',()=>seg('calView',[['month','Month'],['week','Week'],['day','Day']],['month','week','day'].includes(CFG.calView)?CFG.calView:'month')],
@@ -1973,7 +1976,7 @@ document.addEventListener('paste',e=>{if(e.target.id!=='hq')return;const cd=e.cl
  const txt=(cd.getData('text/plain')||'').trim();if(txt&&!e.target.value.trim())HQP={txt}});
 // AI tools for a note: a summary, category suggestions (from your categories), and action items to add as tasks.
 let AIN=null,aiMenu=false;
-async function aiNote(kind){const k=edN;aiMenu=false;if(!k||!FS[k])return;const S=aiFn();if(!S){toast(TAURI?'Add your Anthropic API key in Settings → Integrations':'AI isn’t available here');render();return}
+async function aiNote(kind){const k=edN;aiMenu=false;if(!k||!FS[k])return;const S=aiFn();if(!S){toast(TAURI?'Add your Anthropic API key in Settings → AI':'AI isn’t available here');render();return}
  const n=readNote(FS[k]),body=n.body.slice(0,12000),es=CFG.lang==='es'?' Write in Spanish (Spain).':'',ask=p=>S(p,{modelTier:'quick',cache:false}).then(r=>(r&&r.text||'').trim());AIN={k,kind,busy:true};render();
  try{if(kind==='sum')AIN={k,kind,text:await ask(`Summarize this note in 2 to 4 short bullet points, each starting with "- ". Plain and specific, no preamble.${es}\n\n${body}`)};
   else if(kind==='cats'){const have=(n.fm.categories||[]).map(x=>String(x).toLowerCase()),opts=[...allCats('notes').values()].map(c=>c.name);
@@ -1983,7 +1986,7 @@ async function aiNote(kind){const k=edN;aiMenu=false;if(!k||!FS[k])return;const 
    AIN={k,kind,items:t.split('\n').map(x=>x.replace(/^[-*\d.)\s]+/,'').trim()).filter(x=>x&&!/^(none|ninguna?)\.?$/i.test(x)&&x.length<160).slice(0,12)}}}
  catch(e){AIN=null;toast('AI: '+(e&&e.message||e))}
  if(view==='notes')render()}
-const aiTools=k=>{const menu=`<span class="aiwrap"><button class="g aibtn" data-act="aiMenu" aria-expanded="${aiMenu}" title="AI tools">${symbols()?sym('sparkle'):'✨'}AI</button>${aiMenu?`<span class="dmenu aimenu" role="menu"><button data-act="aiNote" data-val="sum" role="menuitem">Summarize</button><button data-act="aiNote" data-val="cats" role="menuitem">Suggest categories</button><button data-act="aiNote" data-val="tasks" role="menuitem">Find tasks</button></span>`:''}</span>`;
+const aiTools=k=>{if(!aiOn())return '';const menu=`<span class="aiwrap"><button class="g aibtn" data-act="aiMenu" aria-expanded="${aiMenu}" title="AI tools">${symbols()?sym('sparkle'):'✨'}AI</button>${aiMenu?`<span class="dmenu aimenu" role="menu"><button data-act="aiNote" data-val="sum" role="menuitem">Summarize</button><button data-act="aiNote" data-val="cats" role="menuitem">Suggest categories</button><button data-act="aiNote" data-val="tasks" role="menuitem">Find tasks</button></span>`:''}</span>`;
  if(!AIN||AIN.k!==k)return {menu,panel:''};
  const close=`<button class="cx" data-act="aiClose" aria-label="Close" title="Close">${lineIco('M6 6l12 12M18 6L6 18')}</button>`,head=t=>`<div class="aihead"><b>${symbols()?sym('sparkle'):'✨'} ${t}</b>${close}</div>`;
  const panel=AIN.busy?`<div class="aipanel"><p class="meta aithink">Thinking…</p></div>`
@@ -2883,7 +2886,7 @@ let SETG=null;
 const SETGROUPS=[['look','Appearance','palette','🎨',['Appearance'],'Theme, colors, fonts, sidebar and page width'],['general','General','gear','⚙️',['General','Calendar and time'],'Name, language, weather, time format and calendar'],
  ['sections','Sections and Home','squares-four','▦',['Sections','Home cards'],'Turn sections on or off, icons and Home cards'],['content','Notes, journal and more','note','📝',['Notes','Journal','Reminders','Collections'],'Notes, journal, reminders and collections'],
  ['account','Account and data','user-circle','👤',['@acc','Prodify Cloud','Privacy','Users','Storage','Backup folder','Backups','Reset'],'Password, encryption, cloud sync, users, where your data lives and backups'],
- ['tools','Integrations and commands','plug','🔌',['Integrations','Commands'],'AI, connected services and custom commands']];
+ ['ai','AI','sparkle','✨',['AI'],'Use AI or not, AI questions and your API key'],['connections','Connections','link-simple','🔗',['Connections'],'Catalog keys, RetroAchievements and Steam'],['tools','Integrations and commands','plug','🔌',['Integrations','Commands'],'Reminders, calendar and custom commands']];
 function setSplit(){const t=document.createElement('template'),by={};t.innerHTML=V.settingsAll();
  [...t.content.children].forEach(el=>{const h=((el.querySelector('h2')||{}).textContent||'').trim(),key=el.classList&&el.classList.contains('accsec')?'@acc':h,g=(SETGROUPS.find(x=>x[4].includes(key))||SETGROUPS[1])[0];el._k=key;(by[g]=by[g]||[]).push(el)});
  SETGROUPS.forEach(([id,,,,ks])=>{if(by[id])by[id].sort((a,b)=>(ks.indexOf(a._k)+1||99)-(ks.indexOf(b._k)+1||99))});return by}
@@ -2925,7 +2928,7 @@ ${secOn('journal')?swRow('Show journal entries in Notes','jInNotes',CFG.jInNotes
 ${L('New notes start typing in')}${seg('newNoteFocus',[['title','Title'],['body','Text']],CFG.newNoteFocus)}</section>
 <section ${secOn('journal')?'':'hidden'}><h2>Journal</h2>${L('Your name (shown in the greeting)')}<input id="sname" value="${esc(CFG.name)}" placeholder="Optional" style="max-width:300px">
 ${secOn('journal')?swRow('Daily reflection question','prompts',CFG.prompts):''}
-${secOn('journal')?L('What new AI questions focus on'):''}${secOn('journal')?topicPick():''}<p class="meta" style="margin:6px 0 0">Pick as many as you like; each new question focuses on one of them at random. Anything clears the choice.</p></section>
+</section>
 <section><h2>General</h2><div class="row" style="margin:0 0 6px"><button class="g" data-act="onbStart">${lineIco('M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4')}Run setup again</button><span class="meta">Choose again which features you use.</span></div>${wxSettings()}${L('Time format')}${seg('time',[['24','24-hour · 15:30'],['12','12-hour · 3:30 PM']],CFG.time==='12'?'12':'24')}<p class="meta" style="margin:6px 0 0">Used for every time in the app: clocks, events, reminders, alarms, journal entries and history.</p>${L('Language')}${seg('lang',[['en','English'],['es','Español']],CFG.lang==='es'?'es':'en')}${L('Open Prodify on')}${seg('start',visTabs().filter(t=>t[0]!=='settings').map(t=>[t[0],t[1]]),CFG.start)}
 ${secOn('tasks')?swRow('Confirm before deleting a task','confirmTask',CFG.confirmTask):''}
 ${secOn('notes')?swRow('Confirm before deleting a note','confirmNote',CFG.confirmNote):''}
@@ -2934,8 +2937,7 @@ ${secOn('journal')?swRow('Confirm before deleting a question','confirmQuestion',
 <section><h2>Sections</h2><p class="meta" style="margin:0 0 10px">Drag to reorder. Click the icon to change it. 1 col / 2 col sets how wide its card is in the Cards layout. Turning a section off disables it everywhere: it leaves the sidebar, Home, search, commands, Calendar, reminders and the settings that belong to it, and other sections stop linking to it. Your files are kept and come back when you turn it on.</p>${tabList().map(t=>dndRow('tab',t[0],t[1],secOn(t[0]),t[0]==='settings')).join('')}</section>
 <section><h2>Home cards</h2><p class="meta" style="margin:0 0 10px">You can also drag cards directly on Home with the Customize button.</p>${secOn('collections')||secOn('tasks')?`<div class="row" style="margin:0 0 10px">${secOn('tasks')?'<button class="g" data-act="tcNew">+ Task list card</button>':''}${secOn('collections')?'<button class="g" data-act="ccNew">+ Collection card</button>':''}</div>`:''}${homeList().map(id=>{const x=homeDefs().find(y=>y[0]===id);return dndRow('home',id,x[1],!(CFG.homeOff||[]).includes(id),false,x[2]&&!secOn(x[2])?'· its section is off':'')}).join('')}</section>
 ${accSettings()}${cloudSection()}${usersSettings()}${backupSettings()}
-<section><h2>Integrations</h2>${secOn('journal')?swRow('AI-generated questions (Claude)','intAi',CFG.intAi):''}<p class="meta" style="margin:6px 0 0">Off: new questions come only from the built-in list.</p>
-${aiKeyBody()}
+<section><h2>Integrations</h2>
 ${secOn('tasks')?swRow('In-app reminder banner','intRem',CFG.intRem):''}
 ${secOn('tasks')?swRow('Desktop notifications for reminders','intNotif',CFG.intNotif):''}
 ${secOn('calendar')&&secOn('tasks')?swRow('Calendar shows tasks and reminders','calTasks',CFG.calTasks):''}
@@ -2944,7 +2946,9 @@ ${secOn('calendar')&&secOn('notes')?swRow('Calendar shows notes','calNotes',CFG.
 ${secOn('calendar')&&secOn('habits')?swRow('Calendar shows habits','calHabits',CFG.calHabits):''}
 ${secOn('calendar')&&secOn('projects')?swRow('Calendar shows projects','calProjects',CFG.calProjects):''}</section>
 <section ${secOn('tasks')?'':'hidden'}><h2>Reminders</h2>${TAURI?'<p class="meta" style="margin:0">Reminders appear as a banner and a desktop notification while Prodify is open. Ones you miss show up the next time you open it.</p>':`<p class="meta" style="margin:0 0 10px">Reminders appear as a banner while Prodify is open in a browser tab. Ones you miss show up the next time you open it. Desktop notifications are optional and may not be available in this view.</p><div class="row" style="margin:0"><button class="g" data-act="notif">${NS()==='granted'?'Desktop notifications are on':'Allow desktop notifications'}</button><span class="meta">Status: ${NS()}</span></div>`}</section>
-<section ${secOn('collections')?'':'hidden'}><h2>Collections</h2>${colSettings()}<h3 class="ptitle" style="margin-top:18px">Fields per type</h3>${colFieldSettings()}</section>
+<section ${secOn('collections')?'':'hidden'}><h2>Collections</h2><h3 class="ptitle" style="margin-top:0">Fields per type</h3>${colFieldSettings()}</section>
+<section ${secOn('collections')?'':'hidden'}><h2>Connections</h2>${colSettings()}</section>
+${aiSection()}
 <section><h2>Commands</h2>${cmdSettings()}</section>
 ${storageSection()}
 <section><h2>Reset</h2><div class="row" style="margin:0"><button class="g" data-act="resetCfg">Reset settings</button><button class="g" data-act="wipe">${armed==='wipe'?'Click again to erase everything':'Erase all notes, journal and tasks'}</button></div><p class="meta">${TAURI?'This deletes the Markdown files in your Prodify folder. ':''}Export a .zip from Files first if you want a backup.</p></section>`;
@@ -4845,3 +4849,9 @@ const smSettings=()=>`<div class="rasettings smsettings"><p class="meta" style="
 ${smMsg?`<p class="meta ${/^Connected/.test(smMsg)&&!/private/.test(smMsg)?'':'mirerr'}" style="margin:6px 0 0">${esc(smMsg)}</p>`:CFG.smLast?`<p class="meta" style="margin:6px 0 0">Last synced ${fmt(new Date(CFG.smLast).toISOString().slice(0,10))}</p>`:''}</div>`;
 // Opening Games syncs each connected service on its own at most every 30 minutes.
 const gamesAuto=()=>{raAuto();if(smOn()&&TAURI&&!smBusy&&Date.now()-(CFG.smLast||0)>30*60000)smSync(true)};
+
+// Settings → AI: one switch for every AI feature, then (when on) the journal questions and the API key.
+const aiSection=()=>`<section class="aisec"><h2>AI</h2>${swRow('Use AI','aiUse',aiOn())}<p class="meta" style="margin:6px 0 0">${aiOn()?'AI can suggest journal questions and help with your notes (summaries, tags, rewriting). It only runs when you set it up below, and only what it needs is sent to Anthropic.':'AI is off: nothing is sent to an AI service, new journal questions come from the built-in list, and the AI tools in Notes are hidden.'}</p>
+${aiOn()?`${secOn('journal')?swRow('AI-generated questions (Claude)','intAi',CFG.intAi)+'<p class="meta" style="margin:6px 0 0">Off: new questions come only from the built-in list.</p>':''}
+${secOn('journal')?L('What new AI questions focus on')+topicPick()+'<p class="meta" style="margin:6px 0 0">Pick as many as you like; each new question focuses on one of them at random. Anything clears the choice.</p>':''}
+${aiKeyBody()}`:''}</section>`;
