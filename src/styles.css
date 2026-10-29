@@ -2263,3 +2263,4 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .onbkey{width:44px;height:44px;color:var(--ac);align-self:center;margin:4px 0}
 .onbbody>h1+.onbdesc{margin-bottom:10px}
 .accchoice{margin:0 0 6px}.accsec .accchoice .onbopt{padding:12px 14px}
+.setfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 4px}.setfoot .appver{margin:0}

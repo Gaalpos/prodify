@@ -2881,7 +2881,8 @@ const setTiles=by=>`<div class="setgrid">${SETGROUPS.map(([id,l,ic,em,,d])=>{con
 // The installed version, shown at the bottom right of Settings (the desktop and phone apps report it; the preview says so).
 let APPVER='';try{if(TAURI&&window.__TAURI__.app)window.__TAURI__.app.getVersion().then(v=>{APPVER=v;if(view==='settings')rerenderKeep()}).catch(()=>{})}catch(e){}
 const verLine=()=>`<p class="appver" data-notr>Prodify ${APPVER?esc(APPVER):TAURI?'':'· preview'}</p>`;
-V.settings=()=>V.settingsPage()+verLine();
+// The main Settings page ends with "Run setup again" on the left and the version on the right.
+V.settings=()=>{const page=V.settingsPage();return page+(SETG||setQ.trim()?verLine():`<div class="setfoot"><button class="g" data-act="onbStart">${lineIco('M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4')}Run setup again</button>${verLine()}</div>`)};
 V.settingsPage=()=>{if(SETG&&!setQ.trim()){const g=SETGROUPS.find(x=>x[0]===SETG),by=setSplit();if(g)return `<div class="lnav">${backBtn('setGroup','Back to settings','Settings')}</div><h1 class="h1i">${uiIco(g[2],g[3])}${g[1]}</h1>${(by[g[0]]||[]).map(el=>{const h=el.querySelector('h2');if(h&&h.textContent.trim()===g[1])h.remove();return el.outerHTML}).join('')}`;SETG=null}
  return `<h1>Settings</h1><p class="sub">Saved ${TAURI?'on this computer':'in this browser'}. Your notes and journal are not affected by these.</p>
 <div class="hsearch setsearch">${sym('magnifying-glass')}<input id="setq" value="${esc(setQ)}" placeholder="Search settings" aria-label="Search settings" autocomplete="off">${setQ?'<button class="x" data-act="setqClear" aria-label="Clear search">Clear</button>':''}</div>
