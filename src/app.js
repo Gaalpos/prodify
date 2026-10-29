@@ -7,7 +7,7 @@ const fail=m=>{const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(to
 // Writes run one after another, so an older save can never land after a newer one.
 const queue=(f,what)=>{SQ=SQ.then(f).then(()=>{const t=$('toast');if(t.textContent.startsWith('Could not save'))t.hidden=true}).catch(e=>fail('Could not save '+what+': '+e))};
 const store={get:k=>{if(TAURI)return BOOT.kv&&k in BOOT.kv?BOOT.kv[k]:null;try{return localStorage.getItem(k)}catch(e){return null}},
- set:(k,v)=>{if(!TAURI){try{localStorage.setItem(k,v)}catch(e){}return}if(LOCKED)return;queue(()=>TAURI.invoke('kv_set',{key:k,value:v}),'settings')}};
+ set:(k,v)=>{if(!TAURI){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}return}if(LOCKED)return;queue(()=>TAURI.invoke('kv_set',{key:k,value:v}),'settings')}};
 /* ---------- users ----------
    Several people can use Prodify on one computer. Each user has their own data folder (in the browser preview, their
    own storage) and their own settings, and can have their own account and encryption. The list of users is kept in
@@ -1769,6 +1769,14 @@ const uInit=u=>esc((String(u.name||'?').trim()[0]||'?').toUpperCase());
 const uColor=u=>['#5cb8c2','#d4a43a','#9a5fa0','#5fa57f','#e0566f','#6f7fb0','#c9733d'][[...String(u.id)].reduce((a,c)=>a+c.charCodeAt(0),0)%7];
 // The first time a second user is added, the current folder becomes the first user.
 function usersInit(){if(!USERS.length)USERS=[{id:'main',name:(ACCT&&ACCT.name)||CFG.name||'Me',dir:TAURI?BOOT.dir:'',main:true}]}
+// Data of the user's own (anything beyond the templates and question list every new space starts with).
+const hasOwnData=()=>Object.keys(FS).some(k=>k!==ACCK&&!k.startsWith('templates/')&&k!=='questions.md');
+// Adds a user with their own (empty) folder and returns their id, or '' with a toast when it can't.
+function userCreate(nm,dirPick){const dir=TAURI?(dirPick||userDefDir(nm)):'';usersInit();
+ if(TAURI&&USERS.some(u=>u.dir===dir)){toast('That folder already belongs to a user');return ''}if(TAURI&&dir===BOOT.dir){toast('Pick a different folder');return ''}
+ const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);USERS.push({id,name:nm,dir});userSave();return id}
+// Starting fresh: a new user with an empty folder; once it opens, account creation continues there ('settings' or 'onb').
+function userFresh(nm,then){const id=userCreate(nm);if(!id)return;try{sessionStorage.setItem('prodify.fresh',then)}catch(e){}toast(`Opening a new, empty space for ${nm}…`);userSwitch(id)}
 async function userSwitch(id){const u=USERS.find(x=>x.id===id);if(!u)return;if(ME?u.id===ME.id:u.main){WHO=false;whoShow();return}
  try{flushNote()}catch(e){}save();try{sessionStorage.setItem('prodify.switched','1')}catch(e){}
  try{if(TAURI){await SQ;await TAURI.invoke('set_data_dir',{path:u.dir,copy:false})}else store.set('prodify.user',u.id);await SQ;location.reload()}catch(e){toast('Could not switch user: '+e)}}
@@ -1804,16 +1812,23 @@ const usersSettings=()=>{const me=u=>ME?u.id===ME.id:u.main,list=USERS.length?US
 ${UADD?`<div class="accpanel">${L('Name')}<input id="uname" value="${esc(UADD.name)}" placeholder="Their name" autocomplete="off" aria-label="Name">${TAURI?`${L('Their folder')}<p class="path" data-notr>${esc(UADD.dir||userDefDir(UADD.name)||'')}</p><div class="row" style="margin:0"><button class="g" data-act="userDir">Choose folder…</button></div>`:''}
 <div class="row" style="margin-top:12px"><button class="b" data-act="userAdd">Add and switch to them</button><button class="g" data-act="userCancel">Cancel</button></div></div>`:`<div class="row" style="margin-top:10px"><button class="g" data-act="userNew">${lineIco('M12 5v14M5 12h14')}Add user</button></div>`}
 ${USERS.length>1?swRow('Ask who’s using Prodify when it opens','u:ask',store.get('prodify.ask')!=='0'):''}</section>`};
+// When the space already has data, creating an account asks: lock this data, or start fresh as a separate user.
+let accFresh=false,accNameDraft='';
+const accChoice=(fresh,act)=>`<p class="meta" style="margin:8px 0 6px">This ${TAURI?'folder':'browser'} already has notes and files.</p><div class="onbacc accchoice" role="radiogroup" aria-label="What the account is for">
+<button class="onbopt ${fresh?'':'on'}" role="radio" aria-checked="${!fresh}" data-act="${act}" data-val="0"><span class="onboptico">${lineIco('M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z')}</span><span class="onbopttx"><b>Protect my existing data</b><span class="meta">The account locks the notes, tasks and files that are already here.</span></span><span class="onbradio"></span></button>
+<button class="onbopt ${fresh?'on':''}" role="radio" aria-checked="${fresh}" data-act="${act}" data-val="1"><span class="onboptico">${lineIco('M12 5v14M5 12h14')}</span><span class="onbopttx"><b>Start fresh as a new user</b><span class="meta">A separate, empty space with its own ${TAURI?'folder':'storage'}. What’s here now stays as it is.</span></span><span class="onbradio"></span></button></div>`;
 // Settings → Account: create a local account (optionally encrypted), or manage the one there is.
 const accField=(id,lab,ac,type)=>`${L(lab)}<input type="${type||'password'}" id="${id}" autocomplete="${ac}" aria-label="${esc(lab)}" ${accBusy?'disabled':''}>`;
 const accSettings=()=>{const a=ACCT,dis=accBusy?'disabled':'';
  if(ACCUI==='recovery')return `<section class="accsec"><h2>Your recovery key</h2><p class="meta" style="margin:0 0 10px">Write it down or keep it somewhere safe, away from this computer. If you forget your password, it’s the only way back in${a&&a.enc?': without either, nobody can open your encrypted data, not even you':''}. It isn’t shown again.</p>
 <p class="rkey" data-notr>${esc(ACCRK)}</p><div class="row"><button class="g" data-act="accCopyRk">${lineIco('M8 8h11v11H8zM5 16V5h11')}Copy</button><button class="b" data-act="accRkDone">I’ve saved it</button></div></section>`;
  if(!a){const legacy=CFG.lock&&CFG.lock.hash;
-  if(ACCUI==='create')return `<section class="accsec"><h2>Create a local account</h2><p class="meta" style="margin:0 0 4px">It stays on your devices: no email, no server. Prodify asks for the password when it opens${TAURI?', on every device that syncs this folder':''}.</p>
-${accField('accname','Your name','name','text')}${accField('accpw','Password','new-password')}${accField('accpw2','Repeat the password','new-password')}
+  if(ACCUI==='create'){const own=hasOwnData(),fresh=own&&accFresh,nm=`${L('Your name')}<input type="text" id="accname" value="${esc(accNameDraft)}" autocomplete="name" aria-label="Your name" ${dis}>`;
+  return `<section class="accsec"><h2>Create a local account</h2><p class="meta" style="margin:0 0 4px">It stays on your devices: no email, no server. Prodify asks for the password when it opens${TAURI?', on every device that syncs this folder':''}.</p>
+${own?accChoice(fresh,'accFreshSet'):''}${nm}${fresh?`<p class="meta" style="margin:8px 0 0">A new user gets their own empty ${TAURI?'folder':'storage'}. Your current notes and files stay as they are, as their own user. You choose the new account’s password next.</p>
+<div class="row" style="margin-top:12px"><button class="b" data-act="accFreshGo" ${dis}>Start fresh</button><button class="g" data-act="accCancel" ${dis}>Cancel</button></div></section>`:`${accField('accpw','Password','new-password')}${accField('accpw2','Repeat the password','new-password')}
 <div class="swrow" style="margin-top:12px"><span>Encrypt my data <span class="meta">Notes, journal, tasks, photos and everything else are stored encrypted, so they can only be opened in Prodify with your password or recovery key.</span></span>${swBtn(accEncOn,'data-act="accEncTog"','Encrypt my data')}</div>
-<div class="row" style="margin-top:12px"><button class="b" data-act="accCreate" ${dis}>${accBusy?'Creating…':'Create account'}</button><button class="g" data-act="accCancel" ${dis}>Cancel</button></div></section>`;
+<div class="row" style="margin-top:12px"><button class="b" data-act="accCreate" ${dis}>${accBusy?'Creating…':'Create account'}</button><button class="g" data-act="accCancel" ${dis}>Cancel</button></div></section>`}`}
   return `<section class="accsec"><h2>Account</h2><div class="swrow"><span>Local account <span class="meta">Protect Prodify with a password, and encrypt your data if you like. Everything stays on your devices.</span></span><button class="b" data-act="accUi" data-v="create">Create account</button></div>${legacy?'<p class="meta" style="margin:8px 0 0">Your current password lock is replaced by the account.</p>':''}</section>${legacy?lockSettings():''}`}
  const panel=ACCUI==='enc'?`<div class="accpanel"><p style="margin:0 0 6px">${a.enc?'Decrypt your data? Your files go back to plain Markdown that any app can read.':'Encrypt your data? Every file, photo and backup is rewritten encrypted. Other apps won’t be able to read them.'}</p>${accField('accpw0','Your password','current-password')}<div class="row"><button class="b" data-act="accEncGo" ${dis}>${accBusy?(a.enc?'Decrypting…':'Encrypting…'):a.enc?'Decrypt my data':'Encrypt my data'}</button><button class="g" data-act="accCancel" ${dis}>Cancel</button></div></div>`
   :ACCUI==='pw'?`<div class="accpanel">${accViaRec?'<p style="margin:0">You unlocked with your recovery key. Choose a new password.</p>':accField('accpw0','Current password','current-password')}${accField('accpw','New password','new-password')}${accField('accpw2','Repeat it','new-password')}<div class="row"><button class="b" data-act="accPwGo" ${dis}>Change password</button><button class="g" data-act="accCancel" ${dis}>Cancel</button></div></div>`
@@ -1881,7 +1896,8 @@ function onbAccBody(){const A=onbA(),dis=A.busy?'disabled':'',local=A.mode==='lo
 <button class="onbopt ${local?'':'on'}" role="radio" aria-checked="${!local}" data-act="onbAcc" data-val="cloud" ${dis}><span class="onboptico">${lineIco('M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.3 4.5 4.5 0 0 0 7 18z')}</span><span class="onbopttx"><b>Prodify Cloud <span class="onbtag plus">Sync</span></b><span class="meta">Sync across your devices with encrypted cloud storage. Start free, and upgrade for more space.</span>
 <span class="onbplans"><span><b>Free</b>100 MB</span><span><b>Basic</b>5 GB<em>Subscription</em></span><span><b>Pro</b>50 GB<em>Subscription</em></span></span></span><span class="onbradio"></span></button></div>`;
  let more='',next='';
- if(local){more=`<div class="swrow onbpwrow"><span>Protect with a password <span class="meta">Prodify asks for it when it opens. Optional.</span></span>${swBtn(A.pw,'data-act="onbPwT"','Protect with a password')}</div>
+ if(local&&hasOwnData()&&A.fresh){more=accChoice(true,'onbFreshSet')+`<p class="meta" style="margin:8px 0 0">Prodify opens a new, empty space for you next, where you can set its password.</p>`;next=`<button class="b onbbig" data-act="onbFreshGo">Start fresh${lineIco('M9 5l7 7-7 7')}</button>`}
+ else if(local){more=`${hasOwnData()?accChoice(false,'onbFreshSet'):''}<div class="swrow onbpwrow"><span>Protect with a password <span class="meta">Prodify asks for it when it opens. Optional.</span></span>${swBtn(A.pw,'data-act="onbPwT"','Protect with a password')}</div>
 ${A.pw?`<div class="onbfields">${onbPw(true)}<div class="swrow"><span>Encrypt my data <span class="meta">Your files can only be opened in Prodify, with your password or recovery key.</span></span>${swBtn(A.enc,'data-act="onbEncT"','Encrypt my data')}</div></div>`:''}`;
   next=`<button class="b onbbig" data-act="onbAccNext" ${dis}>${A.busy?'Creating…':'Continue'}${lineIco('M9 5l7 7-7 7')}</button>`}
  else if(!cloudUrl())more='<p class="meta">Prodify Cloud isn’t available in this version yet. Choose a local account for now; you can switch later in Settings.</p>';
@@ -3826,7 +3842,7 @@ else if(a==='cloudVerify'){const code=v('cloudcode');cloudBusy=true;render();
  cloudJson('POST','/auth/verify',{email:CLOUDUI.email,code,device:(TAURI?'Prodify app':'Prodify web')+' · '+(navigator.platform||'')}).then(r=>{CFG.cloud={url:cloudUrl(),email:CLOUDUI.email,token:r.token,me:r.me,seq:0};saveCfg();CS={base:{},rev:{},ids:{}};CLOUDUI=null;cloudErr='';toast('Signed in to Prodify Cloud');setTimeout(()=>cloudSync(),50)})
   .catch(e=>{cloudErr=e.message}).finally(()=>{cloudBusy=false;render()});return}
 else if(a==='cloudNow'){cloudSync().then(ch=>{if(!cloudErr)toast(ch?'Synced · changes from your other devices are in':'Synced')});render();return}
-else if(a==='cloudOut'){cloudSignOut().then(()=>{toast('Signed out of Prodify Cloud');render()});return}
+else if(a==='cloudOut'){askConfirm({title:'Sign out of Prodify Cloud?',text:'This device stops syncing. Your data stays here and in the cloud, and you can sign in again at any time.',ok:'Sign out'}).then(ok=>{if(!ok)return;cloudSignOut().then(()=>{toast('Signed out of Prodify Cloud');render()})});return}
 else if(a==='cloudJoin'){cloudBusy=true;render();cloudApi('GET','/obj/account').then(async r=>{if(!r.ok){toast('This cloud is empty. Create an account with encryption first, then sync.');return}const t=await r.text(),ac=accParse(t);cloudMismatch={text:t,name:ac&&ac.name};pendingFocus='#cloudpw'}).catch(e=>{cloudErr=e.message}).finally(()=>{cloudBusy=false;render()});return}
 else if(a==='cloudAdopt'){const pw=($('cloudpw')||{}).value||'';cloudBusy=true;render();cloudAdopt(pw).then(ok=>{if(!ok){toast('Wrong password');return}toast('This device now uses your cloud account · syncing…');setTimeout(()=>cloudSync(),50)}).finally(()=>{cloudBusy=false;render()});return}
 else if(a==='storeDb'){storeSwitch('db');return}
@@ -3836,13 +3852,13 @@ else if(a==='userGo'){userSwitch(b.dataset.v);return}
 else if(a==='userNew'){UADD={name:'',dir:''};pendingFocus='#uname'}
 else if(a==='userCancel'){UADD=null}
 else if(a==='userDir'){if(UADD)UADD.name=v('uname');TAURI.invoke('pick_folder',{title:'Choose a folder for this user'}).then(d=>{if(d&&UADD){UADD.dir=d;render()}}).catch(e=>toast('Could not open the folder picker: '+e));return}
-else if(a==='userAdd'){const nm=v('uname');if(!nm){toast('Type their name');return}const dir=TAURI?(UADD.dir||userDefDir(nm)):'';
- usersInit();if(TAURI&&USERS.some(u=>u.dir===dir)){toast('That folder already belongs to a user');return}if(TAURI&&(dir===BOOT.dir)){toast('Pick a different folder');return}
- const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);USERS.push({id,name:nm,dir});userSave();UADD=null;toast(`Switching to ${nm}…`);userSwitch(id);return}
+else if(a==='userAdd'){const nm=v('uname');if(!nm){toast('Type their name');return}const id=userCreate(nm,UADD.dir);if(!id)return;UADD=null;toast(`Switching to ${nm}…`);userSwitch(id);return}
 else if(a==='userDel'){const u=USERS.find(x=>x.id===b.dataset.v);if(!u)return;askConfirm({title:`Remove ${u.name}?`,text:TAURI?`They’re taken off this list. Their folder and files stay where they are (${u.dir}), so you can add them back later.`:'They’re taken off this list. Their data stays in this browser, so you can add them back later.',ok:'Remove'}).then(ok=>{if(!ok)return;USERS=USERS.filter(x=>x.id!==u.id);userSave();render();toast(`${u.name} removed from this list`)});return}
 else if(a==='set'&&b.dataset.s==='u:ask'){store.set('prodify.ask',b.dataset.val==='on'?'1':'0')}
 else if(a==='lockRec'){lockRec=!lockRec;lockShow();return}
-else if(a==='accUi'){ACCUI=ACCUI===b.dataset.v?null:b.dataset.v;pendingFocus=ACCUI==='create'?'#accname':ACCUI==='pw'&&accViaRec?'#accpw':'#accpw0'}
+else if(a==='accFreshSet'){accNameDraft=v('accname')||accNameDraft;accFresh=b.dataset.val==='1';render();return}
+else if(a==='accFreshGo'){const nm=v('accname');if(!nm){toast('Type your name');return}accFresh=false;accNameDraft='';ACCUI=null;userFresh(nm,'settings');return}
+else if(a==='accUi'){if(b.dataset.v==='create'){accFresh=false;accNameDraft=CFG.name||''}ACCUI=ACCUI===b.dataset.v?null:b.dataset.v;pendingFocus=ACCUI==='create'?'#accname':ACCUI==='pw'&&accViaRec?'#accpw':'#accpw0'}
 else if(a==='accCancel'){ACCUI=null;accViaRec=false}
 else if(a==='accEncTog'){accEncOn=!accEncOn;const sw=b;sw.classList.toggle('on',accEncOn);sw.setAttribute('aria-checked',accEncOn);return}
 else if(a==='accCopyRk'){navigator.clipboard.writeText(ACCRK).then(()=>toast('Recovery key copied'),()=>toast('Couldn’t copy it. Select it and copy it by hand.'));return}
@@ -3864,6 +3880,8 @@ else if(a==='lockOn'){const p1=($('lknew')||{}).value||'',p2=($('lknew2')||{}).v
 else if(a==='lockOff'){const p=($('lkold')||{}).value||'';lockCheck(p).then(ok=>{if(!ok){toast('Wrong password');return}delete CFG.lock;saveCfg();lockSet=false;render();toast('Password lock is off')});return}
 else if(a==='lockIdle'){if(CFG.lock){CFG.lock.idle=+b.dataset.val;saveCfg()}}
 else if(a==='lockNow'){PWLOCK=true;lockShow();return}
+else if(a==='onbFreshSet'){onbAccSync();onbA().fresh=b.dataset.val==='1';onbShow();return}
+else if(a==='onbFreshGo'){onbSave();CFG.onboarded=true;saveCfg();ONB=null;onbShow();userFresh(CFG.name||'New user','onb');return}
 else if(a==='onbAcc'){onbAccSync();const A=onbA();A.mode=b.dataset.val;A.err='';onbShow();return}
 else if(a==='onbPwT'){onbAccSync();const A=onbA();A.pw=!A.pw;onbShow();if(A.pw)setTimeout(()=>{const i=$('onbpw');if(i)i.focus()});return}
 else if(a==='onbEncT'){onbAccSync();onbA().enc=!onbA().enc;onbShow();return}
@@ -4385,8 +4403,13 @@ $('imp').addEventListener('change',async e=>{let n=0;
 if(!CFG.hcAuto){if(+CFG.homeCols===3)CFG.homeCols='auto';CFG.hcAuto=1;saveCfg()}
 // The Write freely card merged into How are you feeling?: keep it shown if only Write freely was on.
 if((CFG.homeOff||[]).includes('mood')&&!(CFG.homeOff||[]).includes('write')){CFG.homeOff=CFG.homeOff.filter(x=>x!=='mood');saveCfg()}
-if(WHO)whoShow();else if(PWLOCK)lockShow();if(ONB_AUTO&&!CFG.onboarded){ONB={i:0};onbShow()}setInterval(showRem,15000);setTimeout(()=>{try{bdRemind()}catch(e){}try{bkAuto()}catch(e){}},2000);setInterval(()=>{try{bkAuto()}catch(e){}},3600000);setInterval(()=>{try{bdRemind()}catch(e){}},600000);try{if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s;if(!qBusy)keepRender()}).catch(()=>{})}}catch(e){}
-render();
+// The lock screen, user picker and setup open once the whole file has run (they use parts defined further down).
+queueMicrotask(()=>{if(WHO)whoShow();else if(PWLOCK)lockShow();if(ONB_AUTO&&!CFG.onboarded){ONB={i:0};onbShow()}
+// A fresh user just opened: carry on creating their account (in setup, or in Settings).
+{let fr='';try{fr=sessionStorage.getItem('prodify.fresh')||'';sessionStorage.removeItem('prodify.fresh')}catch(e){}
+ if(fr==='onb'){ONB={i:1};onbShow()}else if(fr==='settings'){view='settings';SETG='account';ACCUI='create';accFresh=false;accNameDraft=ME?ME.name:'';setTimeout(()=>{toast('This is your new, empty space. Create its account.');const i=$('accpw');if(i)i.focus()},300)}}});setInterval(showRem,15000);setTimeout(()=>{try{bdRemind()}catch(e){}try{bkAuto()}catch(e){}},2000);setInterval(()=>{try{bkAuto()}catch(e){}},3600000);setInterval(()=>{try{bdRemind()}catch(e){}},600000);try{if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s;if(!qBusy)keepRender()}).catch(()=>{})}}catch(e){}
+// First draw once the whole file has run, so every part (Settings' later sections included) is defined.
+queueMicrotask(()=>render());
 if(BOOT.error)fail('Could not read your files, so changes won’t be saved: '+BOOT.error);
 // covers still stored as online links are saved for offline use shortly after start-up
 setTimeout(colOfflineCovers,1500);

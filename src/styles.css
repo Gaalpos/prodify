@@ -2262,3 +2262,4 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .onbok{flex-direction:row;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:color-mix(in srgb,var(--ac) 10%,transparent)}.onbok .sym{width:18px;height:18px;color:var(--ac);flex:none}
 .onbkey{width:44px;height:44px;color:var(--ac);align-self:center;margin:4px 0}
 .onbbody>h1+.onbdesc{margin-bottom:10px}
+.accchoice{margin:0 0 6px}.accsec .accchoice .onbopt{padding:12px 14px}
