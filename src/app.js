@@ -1839,7 +1839,8 @@ const ONBF=[
  ['files','Save links, images and PDFs in one place, next to your Markdown files.',['Paste links, images or PDFs','Pins and favorites','Card or list view']],
  ['music','Listen to radio stations and mix ambient sounds while you work. Needs an internet connection.',['Lofi, ambient and jazz radio','Rain, waves, fire and more','A player in the sidebar']]];
 let ONB=null;
-const onbSteps=()=>['welcome',...ONBF.map(f=>f[0]),'look','done'];
+// The account step shows when setup starts without an account or a cloud sign-in (and stays while it's in use).
+const onbSteps=()=>{if(ONB&&ONB.accStep===undefined)ONB.accStep=!ACCT&&!cloudOn();return ['welcome',...(ONB&&ONB.accStep?['account']:[]),...ONBF.map(f=>f[0]),'look','done']};
 // Shows setup on first launch. Off while developing; set to true before building a release.
 const ONB_AUTO=false;
 function onbShow(){let o=$('onb');if(!ONB){if(o)o.remove();document.body.classList.remove('onboarding');return}
@@ -1853,6 +1854,7 @@ function onbShow(){let o=$('onb');if(!ONB){if(o)o.remove();document.body.classLi
 ${L('What should we call you?')}<input id="onbname" value="${esc(CFG.name||'')}" placeholder="Your name (optional)" autocomplete="off">
 <div class="onblang">${L('Language')}${seg('lang',[['en','English'],['es','Español']],CFG.lang==='es'?'es':'en')}</div>
 <div class="onbnav"><button class="b onbbig" data-act="onbNext">Let’s go${lineIco('M9 5l7 7-7 7')}</button></div>`;
+ else if(id==='account')body=onbAccBody();
  else if(fi>=0){const f=ONBF[fi],t=TABS.find(x=>x[0]===id),on=secOn(id);
   body=`<p class="meta onbcount">Feature ${fi+1} of ${n}</p>${icon(id)}<h1>${t[1]}</h1><p class="onbdesc">${f[1]}</p><ul class="onbpts">${f[2].map(x=>`<li>${lineIco('M5 12.5l4.5 4.5L19 7')}<span>${x}</span></li>`).join('')}</ul>
 <p class="meta">Do you want to use ${t[1]}?</p><div class="onbnav two"><button class="g onbbig ${!on?'chosen':''}" data-act="onbPick" data-id="${id}" data-val="off">Not now</button><button class="b onbbig ${on?'chosen':''}" data-act="onbPick" data-id="${id}" data-val="on">${lineIco('M5 12.5l4.5 4.5L19 7')}Use ${t[1]}</button></div>`}
@@ -1867,6 +1869,29 @@ ${L('Design style')}${seg('uiStyle',[['default','Prodify'],['accent','Accent'],[
 <div class="onbnav"><button class="b onbbig" data-act="onbDone">Start using Prodify${lineIco('M9 5l7 7-7 7')}</button></div>`}
  o.innerHTML=`<div class="onbcard">${head}<div class="onbbody">${body}</div></div>`;
  const f=o.querySelector('.onbbig.chosen')||o.querySelector('#onbname')||o.querySelector('.onbnav .b');if(f&&document.activeElement&&!o.contains(document.activeElement))f.focus()}
+/* Setup's account step: a local account (the default: no sign-up, optional password and encryption) or Prodify Cloud
+   (sync with cloud storage; Free 100 MB, Basic and Pro as subscriptions). ONB.acc keeps the choice and what's typed. */
+const onbA=()=>ONB.acc||(ONB.acc={mode:'local',pw:false,enc:true,step:null,email:CFG.cloud&&CFG.cloud.email||'',dev:'',err:'',busy:false,p1:'',p2:'',code:''});
+function onbAccSync(){const A=onbA(),g=id=>{const e=$(id);return e?e.value:null};[['onbpw','p1'],['onbpw2','p2'],['onbemail','email'],['onbcode','code']].forEach(([id,k])=>{const x=g(id);if(x!==null)A[k]=x})}
+const onbPw=(two,lab)=>`${L(lab||'Password')}<input type="password" id="onbpw" value="${esc(onbA().p1)}" autocomplete="new-password" aria-label="${lab||'Password'}">${two?`${L('Repeat it')}<input type="password" id="onbpw2" value="${esc(onbA().p2)}" autocomplete="new-password" aria-label="Repeat the password">`:''}`;
+function onbAccBody(){const A=onbA(),dis=A.busy?'disabled':'',local=A.mode==='local';
+ if(A.step==='rk')return `${lineIco('M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z').replace('class="sym"','class="sym onbkey"')}<h1>Your recovery key</h1><p class="onbdesc">Write it down or keep it somewhere safe. If you forget your password, it’s the only way back in${ACCT&&ACCT.enc?': without either, nobody can open your encrypted data':''}. It isn’t shown again.</p><p class="rkey" data-notr>${esc(ACCRK)}</p><div class="row" style="margin:0"><button class="g" data-act="accCopyRk">Copy</button></div><div class="onbnav"><button class="b onbbig" data-act="onbRkDone">I’ve saved it${lineIco('M9 5l7 7-7 7')}</button></div>`;
+ const cards=`<div class="onbacc" role="radiogroup" aria-label="Account type">
+<button class="onbopt ${local?'on':''}" role="radio" aria-checked="${local}" data-act="onbAcc" data-val="local" ${dis}><span class="onboptico">${lineIco('M4 5h16v11H4zM9 20h6M12 16v4')}</span><span class="onbopttx"><b>Local account <span class="onbtag">Default · Free</span></b><span class="meta">Everything stays on this ${TAURI?'device':'browser'}. No sign-up, works offline. Add a password and encryption if you like.</span></span><span class="onbradio"></span></button>
+<button class="onbopt ${local?'':'on'}" role="radio" aria-checked="${!local}" data-act="onbAcc" data-val="cloud" ${dis}><span class="onboptico">${lineIco('M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.3 4.5 4.5 0 0 0 7 18z')}</span><span class="onbopttx"><b>Prodify Cloud <span class="onbtag plus">Sync</span></b><span class="meta">Sync across your devices with encrypted cloud storage. Start free, and upgrade for more space.</span>
+<span class="onbplans"><span><b>Free</b>100 MB</span><span><b>Basic</b>5 GB<em>Subscription</em></span><span><b>Pro</b>50 GB<em>Subscription</em></span></span></span><span class="onbradio"></span></button></div>`;
+ let more='',next='';
+ if(local){more=`<div class="swrow onbpwrow"><span>Protect with a password <span class="meta">Prodify asks for it when it opens. Optional.</span></span>${swBtn(A.pw,'data-act="onbPwT"','Protect with a password')}</div>
+${A.pw?`<div class="onbfields">${onbPw(true)}<div class="swrow"><span>Encrypt my data <span class="meta">Your files can only be opened in Prodify, with your password or recovery key.</span></span>${swBtn(A.enc,'data-act="onbEncT"','Encrypt my data')}</div></div>`:''}`;
+  next=`<button class="b onbbig" data-act="onbAccNext" ${dis}>${A.busy?'Creating…':'Continue'}${lineIco('M9 5l7 7-7 7')}</button>`}
+ else if(!cloudUrl())more='<p class="meta">Prodify Cloud isn’t available in this version yet. Choose a local account for now; you can switch later in Settings.</p>';
+ else if(!cloudOn()){more=A.step==='code'?`<div class="onbfields"><p style="margin:0">We sent a 6-digit code to <b data-notr>${esc(A.email)}</b>.</p>${A.dev?`<p class="meta" style="margin:4px 0 0">Test server: your code is <b data-notr>${esc(A.dev)}</b></p>`:''}${L('Code')}<input id="onbcode" value="${esc(A.code)}" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="Code"><div class="row"><button class="x" data-act="onbCloudBack" ${dis}>Use another email</button></div></div>`
+   :`<div class="onbfields">${L('Your email')}<input id="onbemail" type="email" value="${esc(A.email)}" placeholder="you@example.com" autocomplete="email" aria-label="Email"><p class="meta" style="margin:6px 0 0">No password to remember for the cloud: we email you a sign-in code.</p></div>`;
+  next=A.step==='code'?`<button class="b onbbig" data-act="onbCloudVerify" ${dis}>${A.busy?'Signing in…':'Sign in'}${lineIco('M9 5l7 7-7 7')}</button>`:`<button class="b onbbig" data-act="onbCloudStart" ${dis}>${A.busy?'Sending…':'Send me a code'}${lineIco('M9 5l7 7-7 7')}</button>`}
+ else if(A.step==='join'){more=`<div class="onbfields"><p style="margin:0">Your cloud already has data. Enter your account password to unlock it on this ${TAURI?'device':'browser'}.</p>${onbPw(false,'Account password').replace('autocomplete="new-password"','autocomplete="current-password"')}</div>`;next=`<button class="b onbbig" data-act="onbCloudJoin" ${dis}>${A.busy?'Unlocking…':'Unlock'}${lineIco('M9 5l7 7-7 7')}</button>`}
+ else if(A.step==='create'||!ACCT){more=`<div class="onbfields"><p style="margin:0">Choose a password for your account. Everything is encrypted on this ${TAURI?'device':'browser'} before it’s uploaded, so nobody else can read it.</p>${onbPw(true)}</div>`;next=`<button class="b onbbig" data-act="onbCloudCreate" ${dis}>${A.busy?'Creating…':'Create account'}${lineIco('M9 5l7 7-7 7')}</button>`}
+ else{more=`<div class="onbfields onbok">${lineIco('M5 12.5l4.5 4.5L19 7')}<span>Signed in as <b data-notr>${esc(CFG.cloud.email||'')}</b> · your data syncs on the ${(PLANL[(CFG.cloud.me||{}).plan]||'Free')} plan.</span></div>`;next=`<button class="b onbbig" data-act="onbNext">Continue${lineIco('M9 5l7 7-7 7')}</button>`}
+ return `<h1>How do you want to keep your data?</h1><p class="onbdesc">You can change this later in Settings → Account and data.</p>${cards}${more}${A.err?`<p class="meta mirerr">${esc(A.err)}</p>`:''}<div class="onbnav">${next}</div>`}
 const onbSave=()=>{const n=$('onbname');if(n&&n.value.trim()!==(CFG.name||'')){CFG.name=n.value.trim();saveCfg()}};
 /* Backups: a JSON snapshot of every file, kept in <folder>/.prodify-backups (newest 7) in the app, or in IndexedDB in a
    browser. One runs automatically each day (CFG.autoBackup, on by default); any of them can be restored. Photos and PDFs
@@ -3839,6 +3864,23 @@ else if(a==='lockOn'){const p1=($('lknew')||{}).value||'',p2=($('lknew2')||{}).v
 else if(a==='lockOff'){const p=($('lkold')||{}).value||'';lockCheck(p).then(ok=>{if(!ok){toast('Wrong password');return}delete CFG.lock;saveCfg();lockSet=false;render();toast('Password lock is off')});return}
 else if(a==='lockIdle'){if(CFG.lock){CFG.lock.idle=+b.dataset.val;saveCfg()}}
 else if(a==='lockNow'){PWLOCK=true;lockShow();return}
+else if(a==='onbAcc'){onbAccSync();const A=onbA();A.mode=b.dataset.val;A.err='';onbShow();return}
+else if(a==='onbPwT'){onbAccSync();const A=onbA();A.pw=!A.pw;onbShow();if(A.pw)setTimeout(()=>{const i=$('onbpw');if(i)i.focus()});return}
+else if(a==='onbEncT'){onbAccSync();onbA().enc=!onbA().enc;onbShow();return}
+else if(['onbAccNext','onbCloudStart','onbCloudVerify','onbCloudJoin','onbCloudCreate','onbCloudBack','onbRkDone'].includes(a)){onbAccSync();onbSave();const A=onbA(),nm=CFG.name||'Me';
+ const pwOk=()=>{if(A.p1.length<8){A.err='Use at least 8 characters for the password';return false}if(A.p1!==A.p2){A.err='The passwords don’t match';return false}return true};
+ const run=f=>{A.busy=true;A.err='';onbShow();f().catch(e=>{A.err=String(e&&e.message||e)}).finally(()=>{A.busy=false;onbShow()})};
+ if(a==='onbRkDone'){ACCRK='';A.step=A.mode==='cloud'?'ready':null;if(A.mode==='cloud'){cloudSoon(200);onbShow()}else{ONB.i++;onbShow()}return}
+ if(a==='onbCloudBack'){A.step=null;A.code='';onbShow();return}
+ if(a==='onbAccNext'){if(!A.pw){ONB.i++;onbShow();return}if(!pwOk()){onbShow();return}run(async()=>{ACCRK=await accCreate(nm,A.p1,A.enc);A.p1=A.p2='';A.step='rk'});return}
+ if(a==='onbCloudStart'){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(A.email)){A.err='Type your email';onbShow();return}
+  run(async()=>{CFG.cloud={...(CFG.cloud||{}),url:cloudUrl(),email:A.email};saveCfg();const r=await cloudJson('POST','/auth/start',{email:A.email});A.dev=r.devCode||'';A.step='code';setTimeout(()=>{const i=$('onbcode');if(i)i.focus()})});return}
+ if(a==='onbCloudVerify')run(async()=>{const r=await cloudJson('POST','/auth/verify',{email:A.email,code:A.code,device:(TAURI?'Prodify app':'Prodify web')+' · '+(navigator.platform||'')});
+  CFG.cloud={url:cloudUrl(),email:A.email,token:r.token,me:r.me,seq:0};saveCfg();CS={base:{},rev:{},ids:{}};
+  const acc=await cloudApi('GET','/obj/account');if(acc.ok){const t=await acc.text();cloudMismatch={text:t,name:(accParse(t)||{}).name};A.step='join'}else A.step=ACCT&&ACCT.enc?'ready':'create'});
+ if(a==='onbCloudJoin')run(async()=>{if(!await cloudAdopt(A.p1))throw new Error('Wrong password');A.p1='';A.step='ready';cloudSoon(100)});
+ if(a==='onbCloudCreate'){if(!pwOk()){onbShow();return}run(async()=>{ACCRK=await accCreate(nm,A.p1,true);A.p1=A.p2='';A.step='rk'})}
+ return}
 else if(a==='onbNext'){onbSave();ONB.i++;onbShow();return}
 else if(a==='onbGo'){onbSave();ONB.i=+b.dataset.val;onbShow();return}
 else if(a==='onbPick'){const id=b.dataset.id,on=b.dataset.val==='on',cur=CFG.tabOff||[];CFG.tabOff=on?cur.filter(x=>x!==id):[...new Set([...cur,id])];saveCfg();ONB.i++;apply();render();onbShow();return}

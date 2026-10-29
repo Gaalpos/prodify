@@ -2242,3 +2242,23 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 /* Settings: the app version, bottom right */
 .appver{margin:18px 2px 4px;text-align:right;font-size:12px;color:var(--mut);opacity:.8}
 @media (max-width:760px){.appver{margin-bottom:8px}}
+/* Setup: local account or Prodify Cloud */
+.onbacc{display:flex;flex-direction:column;gap:10px;margin:4px 0 6px}
+.onbopt{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:16px;border:2px solid var(--line);background:var(--bg);transition:border-color .15s,background .15s}
+.onbopt:hover{border-color:color-mix(in srgb,var(--ac) 45%,var(--line))}
+.onbopt.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 8%,var(--sf))}
+.onbopt:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.onboptico{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;background:color-mix(in srgb,var(--ac) 16%,transparent);color:var(--ac)}.onboptico .sym{width:22px;height:22px}
+.onbopttx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;text-align:left}.onbopttx b{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:16px}
+.onbtag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--mut)}
+.onbtag.plus{background:color-mix(in srgb,var(--ac) 20%,transparent);color:var(--ac)}
+.onbradio{width:20px;height:20px;flex:none;margin-top:2px;border-radius:50%;border:2px solid color-mix(in srgb,var(--mut) 70%,transparent);box-sizing:border-box}
+.onbopt.on .onbradio{border-color:var(--ac);background:radial-gradient(circle,var(--ac) 0 4.5px,transparent 5.5px)}
+.onbplans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
+.onbplans>span{display:flex;flex-direction:column;padding:6px 8px;border-radius:10px;background:color-mix(in srgb,var(--ink) 6%,transparent);font-size:13px;font-weight:700;color:var(--ac)}
+.onbplans>span b{font-size:12px;color:var(--ink);font-weight:700}.onbplans em{font-style:normal;font-size:10.5px;font-weight:600;color:var(--mut)}
+.onbfields{display:flex;flex-direction:column;margin-top:8px}.onbfields input{width:100%;box-sizing:border-box}
+.onbpwrow{margin-top:8px}
+.onbok{flex-direction:row;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:color-mix(in srgb,var(--ac) 10%,transparent)}.onbok .sym{width:18px;height:18px;color:var(--ac);flex:none}
+.onbkey{width:44px;height:44px;color:var(--ac);align-self:center;margin:4px 0}
+.onbbody>h1+.onbdesc{margin-bottom:10px}
