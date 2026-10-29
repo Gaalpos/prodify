@@ -1021,12 +1021,12 @@ const sgroup=(title,n,items,more)=>`<section class="sgroup"><div class="head" st
 // Settings that can be found by search and changed in place: [label, extra words, control].
 // A found setting: switches sit beside their label, other controls below it.
 // Settings that belong to a section disappear (page and search) while that section is off.
-const SETSEC={'Calendar view':'calendar','Note categories view':'notes','Category page layout':'notes','Storage layout':'files','Storage sort':'files','Gym rest timer':'health','Show journal entries in Notes':['notes','journal'],'Shine on hover':'collections','Shine color':'collections','Collections fields':'collections','Collections API keys':'collections','Home columns':'today','Health overview columns':'health',
+const SETSEC={'RetroAchievements':'collections','Steam':'collections','Calendar view':'calendar','Note categories view':'notes','Category page layout':'notes','Storage layout':'files','Storage sort':'files','Gym rest timer':'health','Show journal entries in Notes':['notes','journal'],'Shine on hover':'collections','Shine color':'collections','Collections fields':'collections','Collections API keys':'collections','Home columns':'today','Health overview columns':'health',
  'Notes layout':'notes','Notes sort':'notes','Open notes in':'notes','New notes start typing in':'notes','Confirm before deleting a note':'notes','Daily reflection question':'journal','AI question topics':'journal','AI-generated questions':'journal',
  'Time format':'journal','Confirm before deleting a question':'journal','Confirm before deleting a task':'tasks','In-app reminder banner':'tasks','Desktop notifications for reminders':'tasks','Confirm before deleting a project':'projects',
  'Calendar shows tasks and reminders':['calendar','tasks'],'Calendar shows journal, mood and questions':['calendar','journal'],'Calendar shows notes':['calendar','notes'],'Calendar shows habits':['calendar','habits'],'Calendar shows projects':['calendar','projects']};
 const setOk=x=>{const q=SETSEC[x[0]];return !q||[].concat(q).every(secOn)};
-const setRow=(x,w)=>{const c=x[2]();if(x[3]==='raw')return `<div class="setrow">${c}</div>`;return c.startsWith('<button class="sw')?`<div class="setrow swrow"><span>${hl(x[0],w)}</span>${c}</div>`:`<div class="setrow"><p class="meta setlab">${hl(x[0],w)}</p>${c}</div>`};
+const setRow=(x,w)=>{const c=x[2]();if(x[3]==='raw')return `<div class="setrow"><p class="meta setlab">${hl(x[0],w)}</p>${c}</div>`;return c.startsWith('<button class="sw')?`<div class="setrow swrow"><span>${hl(x[0],w)}</span>${c}</div>`:`<div class="setrow"><p class="meta setlab">${hl(x[0],w)}</p>${c}</div>`};
 const onOff=k=>tog(k,!!CFG[k]);
 const SETS=()=>[
  ['Theme','color color palette appearance classic oled notepad forest aqua princess custom new theme create edit import export colors editor json',()=>themeGrid()],
@@ -1054,7 +1054,7 @@ const SETS=()=>[
  ['Collections fields','metadata properties platform downloaded store device netflix steam fields per type collections',colFieldSettings],
  ['Collections API keys','tmdb rawg movies games books series anime key',colSettings],
  ['Commands','slash / shortcuts keywords words note task event project',cmdSettings],
- ['Storage folder','files location directory data save path disk vault app storage database markdown sqlite private inside',()=>(STORE_DB?'':storageBody())+storeModeBody(),'raw'],
+ ['Where your data is kept','storage folder files location directory data save path disk vault app storage database markdown sqlite private inside',()=>(STORE_DB?'':storageBody())+storeModeBody(),'raw'],
  ['Weather city','weather city location town forecast temperature home card time clock',()=>wxSettings()],
  ['Your name','greeting',()=>`<input id="sname" value="${esc(CFG.name)}" placeholder="Optional" style="max-width:260px">`],
  ['Daily reflection question','journal prompt home',()=>onOff('prompts')],
@@ -1097,6 +1097,10 @@ const SETS=()=>[
  ['Search bar above the tab bar on phones','search bar bottom phone mobile thumb reach home',()=>tog('searchLow',!!CFG.searchLow)],
  ['Keep Home cards in the column you put them','home cards columns fixed flow order drag move',()=>tog('homeFixed',!!CFG.homeFixed)],
  ...(innerWidth<=760?[['Phone tab bar','phone mobile tab bar bottom icons navigation more pick reorder sections',()=>'<button class="g" data-act="mEditOpen">Edit tab bar</button>','raw']]:[]),
+ ['Prodify Cloud','cloud sync devices sign in email code plan storage space subscription free basic pro plus upgrade sign out encrypted',()=>cloudSection().replace(/^<section class="cloudsec"><h2>[^<]*<\/h2>/,'').replace(/<\/section>$/,''),'raw'],
+ ['RetroAchievements','retroachievements retro achievements trophies games import sync username web api key emulator mastered beaten collections',()=>raSettings(),'raw'],
+ ['Steam','steam achievements trophies games playtime library import sync profile web api key perfect collections',()=>smSettings(),'raw'],
+ ['Prodify version','version about app release build update number',()=>verLine(),'raw'],
  ['Reset','reset settings erase delete wipe all data defaults',()=>`<div class="row" style="margin:0"><button class="g" data-act="resetCfg">Reset settings</button><button class="g" data-act="wipe">${armed==='wipe'?'Click again to erase everything':'Erase all notes, journal and tasks'}</button></div>`]];
 const plainRow=h=>h.replace(/ data-dnd="[^"]*"/,'').replace(/<span class="grip"[^>]*>⠿<\/span>/,'');
 function homeResults(){if(hq.startsWith('/'))return cmdHelp();const G=[hqSaveRow()],lim=5,more=(n,act)=>n>lim?`<button class="x" ${act}>See all ${n}</button>`:'';
@@ -1120,10 +1124,10 @@ function homeResults(){if(hq.startsWith('/'))return cmdHelp();const G=[hqSaveRow
  if(cs.length||tg.length)G.push(sgroup('Categories and tags',cs.length+tg.length,`<div class="nchips">${cs.map(c=>`<button class="clink" data-act="openCat" data-v="${esc(c.name)}">${hl(c.name)}</button>`).join('')}${tg.map(t=>`<button class="chip tagc clink" data-act="tagGo" data-v="${esc(t.name)}">${hl(t.name)}</button>`).join('')}</div>`));
  const tp=on('notes')?keys('templates/').filter(k=>hMatch(tplName(k))):[];
  if(tp.length)G.push(sgroup('Templates',tp.length,tp.map(k=>sres(`data-act="tplGo" data-k="${esc(k)}"`,tplName(k),'Template')).join('')));
- const ci=!on('collections')?[]:colKeys().map(colRead).filter(it=>hMatch(it.title,it.creator,it.year,it.genres.join(' ')));
+ const ci=!on('collections')?[]:colKeys().map(colRead).filter(it=>hMatch(it.title,it.creator,it.year,it.genres.join(' ')+' '+it.platform+' '+it.store+(it.raId?' retroachievements':'')+(it.smId?' steam':'')+(raRank(it.raAward)>=4?' mastered':'')+(it.smTotal>0&&it.smGot===it.smTotal?' perfect':'')));
  if(ci.length)G.push(sgroup('Collections',ci.length,ci.slice(0,lim).map(it=>sres(`data-act="col:open" data-k="${esc(it.k)}"`,it.title,esc([ctype(it.type).one,colMeta(it),statLabel(it.type,it.status)].filter(Boolean).join(' · ')))).join(''),more(ci.length,'data-act="nav" data-v="collections"')));
  // Storage: saved links, images and PDFs (opening them like in Storage).
- if(on('files')){const sl=[...stRead('links'),...stRead('images'),...stRead('pdfs')].filter(x=>hMatch(x.title,x.k==='links'?x.url+' '+x.desc:'',x.k==='links'?'link':x.k==='pdfs'?'pdf':'image')),set=esc(stRead('images').map(x=>x.att).join('|'));
+ if(on('files')){const sl=[...stRead('links'),...stRead('images'),...stRead('pdfs')].filter(x=>hMatch(x.title,x.k==='links'?x.url+' '+x.desc+' '+(x.tags||[]).map(t=>'#'+t+' '+t).join(' '):'',x.k==='links'?'link':x.k==='pdfs'?'pdf':'image')),set=esc(stRead('images').map(x=>x.att).join('|'));
   const si=sl.filter(x=>x.k==='images'),so=sl.filter(x=>x.k!=='images');
   if(sl.length)G.push(sgroup('Storage',sl.length,(si.length?`<div class="srimgs">${si.slice(0,8).map(x=>`<button class="srimg" ${stOpenAttr(x,set)}><span class="srimgc"><img data-att="${esc(x.att)}" alt="" loading="lazy"></span><b>${hl(x.title||'Image')}</b><span class="meta">${fmt(x.d,{month:'short',day:'numeric'})}</span></button>`).join('')}</div>`:'')+so.slice(0,lim).map(x=>`<button class="sres sresi" ${stOpenAttr(x,set)}>${x.k==='pdfs'?'<span class="stpdf">PDF</span>':stFavicon(x)}<span class="srt"><b>${hl(x.title)}</b><span class="meta">${esc([x.k==='links'?'Link · '+host(x.url):'PDF',fmt(x.d)].join(' · '))}</span></span></button>`).join(''),more(sl.length,'data-act="goSub" data-v="files" data-sub="all"')))}
  // Gym: workouts (by date, routine or exercise), routines and logged exercises.
@@ -2871,7 +2875,7 @@ const seg=(s,o,c)=>`<div class="moods seg">${o.map(([v,l])=>`<button data-act="s
 const L=t=>`<p class="meta" style="margin:14px 0 6px">${t}</p>`;
 // Settings search: filters the searchable settings (SETS) and shows each with its control, so it can be changed in place.
 let setQ='';
-const setSearch=()=>{const w=hWords(setQ),hits=SETS().filter(setOk).filter(x=>{const t=fold(x[0]+' '+x[1]);return w.every(y=>t.includes(y))});
+const setSearch=()=>{const w=hWords(setQ),inTitle=x=>w.every(y=>fold(x[0]).includes(y)),hits=SETS().filter(setOk).filter(x=>{const t=fold(x[0]+' '+x[1]);return w.every(y=>t.includes(y))}).sort((a,b)=>inTitle(b)-inTitle(a));// settings whose name matches come first
  return hits.length?`<section>${hits.map(x=>setRow(x,w)).join('')}</section>`:`<section><p class="empty">No settings match “${esc(setQ.trim())}”.</p></section>`};
 /* Settings groups: the Settings page shows them as tiles, and each opens only its own sections (no long scroll).
    Sections are matched to a group by their heading (the Account section by its class); anything unknown goes to General. */
