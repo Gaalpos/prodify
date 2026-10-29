@@ -2290,3 +2290,15 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .onbconn.open>.onbopt{border-bottom-left-radius:6px;border-bottom-right-radius:6px}
 .onbconnbody{margin:6px 0 2px;padding:10px 14px 14px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 3%,var(--sf))}
 .onbconnbody .rasettings>p:first-child{margin-top:0!important}.onbconnbody .lab input{max-width:none}
+/* Collection cards: the same masonry flow and card look as Storage (row spans set by stMasonry in app.js).
+   Game covers keep their own shape so the whole cover shows. */
+.cgrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));grid-auto-rows:4px;row-gap:0;column-gap:14px;align-items:start}
+.ccov{border-radius:12px;border:1px solid var(--line);box-shadow:none;transition:transform .15s,box-shadow .15s}
+.ccard:hover .ccov{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.22)}
+.ccard b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ccard .meta{font-size:12px}
+.ccov.c-game{aspect-ratio:4/3}
+.ccov.c-game.hasc{aspect-ratio:auto;min-height:90px}
+.ccov.c-game.hasc img{height:auto;max-height:340px;object-fit:contain}
+body.shine .ccard:hover .ccov:not(.tilt){transform:none;box-shadow:none}
+@media (max-width:760px){.cgrid{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:0;column-gap:8px}.cgrid .ccard b{font-size:12px}.cgrid .ccard .meta{font-size:10.5px}.cgrid .ccov{border-radius:8px;box-shadow:none}}
