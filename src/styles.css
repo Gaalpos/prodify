@@ -2313,3 +2313,9 @@ body.shine .ccard:hover .ccov:not(.tilt){transform:none;box-shadow:none}
 .cardsz input[type=range]{width:110px;accent-color:var(--ac);height:16px;margin:0;padding:0;border:0;background:none}
 .cgrid,.stcards{grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(170px * var(--csz,100) / 100)),1fr))}
 @media (max-width:760px){.cgrid{grid-template-columns:repeat(auto-fill,minmax(calc(76px * var(--csz,100) / 100),1fr))}.cardsz input[type=range]{width:90px}}
+/* Touch screens: a press that lingers before a swipe or scroll shouldn't start selecting text. Buttons, cards and
+   labels aren't selectable there; what you type and what you read (an open note, journal entries, the recovery key) still is. */
+@media (hover:none) and (pointer:coarse){
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+}

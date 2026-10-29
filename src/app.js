@@ -4440,7 +4440,7 @@ document.addEventListener('pointermove',e=>{if(!drg)return;
   // the copy stays in the same container so it keeps that container's card styling; it must not count as an item itself
   ['data-dnd','data-id','data-act','data-list','data-val','data-v','id'].forEach(a=>g.removeAttribute(a));g.setAttribute('aria-hidden','true');
   drg.el.parentElement.appendChild(g);drg.ghost=g;drg.order=orderOf(drg.g).filter(id=>dndEl(drg.g,id));
-  drg.el.classList.add('dragph');document.body.classList.add('dragging')}
+  drg.el.classList.add('dragph');document.body.classList.add('dragging');try{getSelection().removeAllRanges()}catch(e){}}
  drg.ghost.style.transform=`translate(${dx}px,${dy}px)`;e.preventDefault();
  dragAt(e.clientX,e.clientY)});
 // Moves the dragged item to wherever the pointer is. After a move the item under the pointer changes,
