@@ -2302,3 +2302,8 @@ body.vivid .shico{background:linear-gradient(135deg,var(--tc),color-mix(in srgb,
 .ccov.c-game.hasc img{height:auto;max-height:340px;object-fit:contain}
 body.shine .ccard:hover .ccov:not(.tilt){transform:none;box-shadow:none}
 @media (max-width:760px){.cgrid{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:0;column-gap:8px}.cgrid .ccard b{font-size:12px}.cgrid .ccard .meta{font-size:10.5px}.cgrid .ccov{border-radius:8px;box-shadow:none}}
+/* Other covers: a source filter, and game covers shown whole at their own shape */
+.caltsrc{margin:0 0 10px;flex-wrap:wrap}
+.caltgame{align-items:start;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.caltgame .caltc img{aspect-ratio:auto;height:auto;max-height:200px;object-fit:contain}
+.caltgame .caltup .caltbox{aspect-ratio:4/3}

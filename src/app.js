@@ -3031,7 +3031,7 @@ async function colSearch(){const q=colSQ.trim(),t=ctype(colSType);if(!q)return;c
  try{res=await CAPI[colSType](q);if(!res.length)err=`${t.src} found nothing for “${q}”.`}catch(e){err=`Couldn’t search ${t.src}: ${e.message||e}. Check your internet connection.`}
  if(tok!==colTok)return;colRes=res;colErr=err;colBusy=false;render();const i=$('cols');if(i)i.focus()}
 /* Other covers for an item, from its catalog: book editions (Open Library), posters (TMDB, TVmaze, including
-   season posters), AniList covers of the matching entries, and RAWG artwork and screenshots. Each is {url, thumb, label}. */
+   season posters), AniList covers of the matching entries, and for games several sources (see gcRawg and the rest). Each is {url, thumb, label}. */
 const COVERS={
  book:async it=>{let key=(it.source.match(/openlibrary\.org(\/works\/OL\d+W)/)||[])[1];
   if(!key){const d=(await getJSON(`https://openlibrary.org/search.json?title=${encodeURIComponent(it.title)}${it.creator?'&author='+encodeURIComponent(it.creator.split(',')[0]):''}&limit=1&fields=key`)).docs[0];key=d&&d.key}
@@ -3050,16 +3050,45 @@ const COVERS={
  anime:async it=>{const r=await getJSON('https://graphql.anilist.co',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({variables:{s:it.title},
   query:'query($s:String){Page(perPage:16){media(search:$s,type:ANIME,sort:SEARCH_MATCH){title{romaji english}seasonYear coverImage{extraLarge large}}}}'})});
   return r.data.Page.media.filter(m=>m.coverImage.extraLarge).map(m=>({url:m.coverImage.extraLarge,thumb:m.coverImage.large||m.coverImage.extraLarge,label:[m.title.english||m.title.romaji,m.seasonYear].filter(Boolean).join(' · ')}))},
- game:async it=>{if(!CFG.rawgKey)throw new Error('a RAWG key is needed (Settings → Collections)');const k=encodeURIComponent(CFG.rawgKey);let slug=(it.source.match(/rawg\.io\/games\/([^/?#]+)/)||[])[1];
-  if(!slug){const r=(await getJSON(`https://api.rawg.io/api/games?key=${k}&search=${encodeURIComponent(it.title)}&page_size=1`)).results[0];slug=r&&r.slug}
-  if(!slug)return[];const[g,sh]=await Promise.all([getJSON(`https://api.rawg.io/api/games/${slug}?key=${k}`),getJSON(`https://api.rawg.io/api/games/${slug}/screenshots?key=${k}`).catch(()=>({results:[]}))]);
-  return[g.background_image&&{url:g.background_image,thumb:g.background_image,label:'Artwork'},g.background_image_additional&&{url:g.background_image_additional,thumb:g.background_image_additional,label:'Artwork'},
-   ...(sh.results||[]).map(x=>({url:x.image,thumb:x.image,label:'Screenshot'}))].filter(Boolean)}};
+ game:async it=>{const all=await Promise.allSettled([gcRawg(it),gcSteam(it),gcRA(it),gcLibretro(it),gcWiki(it)]),out=all.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+  if(!out.length){const e=all.find(r=>r.status==='rejected');if(e)throw e.reason}const seen=new Set();return out.filter(c=>!seen.has(c.url)&&seen.add(c.url))}};
+/* Game cover sources. Each returns [] when it doesn't apply, so the picker shows whatever was found:
+   RAWG (with a key), Steam store art (games synced from Steam), RetroAchievements box art and screens,
+   libretro's box-art library for retro consoles (named by region; images that don't exist drop out), and Wikipedia. */
+async function gcRawg(it){if(!CFG.rawgKey)return[];const k=encodeURIComponent(CFG.rawgKey);let slug=(it.source.match(/rawg\.io\/games\/([^/?#]+)/)||[])[1];
+ if(!slug){const r=(await getJSON(`https://api.rawg.io/api/games?key=${k}&search=${encodeURIComponent(it.title)}&page_size=1`)).results[0];slug=r&&r.slug}
+ if(!slug)return[];const[g,sh]=await Promise.all([getJSON(`https://api.rawg.io/api/games/${slug}?key=${k}`),getJSON(`https://api.rawg.io/api/games/${slug}/screenshots?key=${k}`).catch(()=>({results:[]}))]);
+ return[g.background_image&&{url:g.background_image,thumb:g.background_image,label:'Artwork',src:'RAWG'},g.background_image_additional&&{url:g.background_image_additional,thumb:g.background_image_additional,label:'Artwork',src:'RAWG'},
+  ...(sh.results||[]).map(x=>({url:x.image,thumb:x.image,label:'Screenshot',src:'RAWG'}))].filter(Boolean)}
+async function gcSteam(it){const id=/^\d+$/.test(it.smId)?it.smId:(it.source.match(/store\.steampowered\.com\/app\/(\d+)/)||[])[1];if(!id)return[];
+ const b=`https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/`;
+ return[['library_600x900_2x.jpg','Box art'],['header.jpg','Header'],['capsule_616x353.jpg','Capsule'],['library_hero.jpg','Hero art']].map(([f,label])=>({url:b+f,thumb:b+f,label,src:'Steam'}))}
+async function gcRA(it){if(!it.raId||!raOn())return[];let g=RAG[it.raId]&&RAG[it.raId].g;if(!g)g=await raApi('API_GetGameInfoAndUserProgress',{u:await raUser(),g:it.raId,a:1});
+ return[['ImageBoxArt','Box art'],['ImageTitle','Title screen'],['ImageIngame','In game']].filter(([f])=>g[f]&&!/000002\.png$/.test(g[f])).map(([f,label])=>{const u='https://media.retroachievements.org'+g[f];return{url:u,thumb:u,label,src:'RetroAchievements'}})}
+const LIBRETRO=[[/super nintendo|snes|super famicom/i,'Nintendo_-_Super_Nintendo_Entertainment_System'],[/game ?boy colou?r|\bgbc\b/i,'Nintendo_-_Game_Boy_Color'],[/game ?boy advance|\bgba\b/i,'Nintendo_-_Game_Boy_Advance'],
+ [/game ?boy/i,'Nintendo_-_Game_Boy'],[/\bnes\b|famicom|nintendo entertainment/i,'Nintendo_-_Nintendo_Entertainment_System'],[/nintendo 64|\bn64\b/i,'Nintendo_-_Nintendo_64'],[/gamecube/i,'Nintendo_-_GameCube'],
+ [/3ds/i,'Nintendo_-_Nintendo_3DS'],[/nintendo ds|\bnds\b/i,'Nintendo_-_Nintendo_DS'],[/virtual boy/i,'Nintendo_-_Virtual_Boy'],[/^wii$|\bwii\b(?! ?u)/i,'Nintendo_-_Wii'],
+ [/genesis|mega drive/i,'Sega_-_Mega_Drive_-_Genesis'],[/master system/i,'Sega_-_Master_System_-_Mark_III'],[/game gear/i,'Sega_-_Game_Gear'],[/saturn/i,'Sega_-_Saturn'],[/dreamcast/i,'Sega_-_Dreamcast'],
+ [/sega cd|mega[- ]cd/i,'Sega_-_Mega-CD_-_Sega_CD'],[/32x/i,'Sega_-_32X'],[/playstation 2|\bps2\b/i,'Sony_-_PlayStation_2'],[/\bpsp\b|playstation portable/i,'Sony_-_PlayStation_Portable'],
+ [/^playstation$|\bps1\b|\bpsx\b|playstation(?! ?[2-5]| ?vita| ?portable)/i,'Sony_-_PlayStation'],[/atari 2600/i,'Atari_-_2600'],[/atari 7800/i,'Atari_-_7800'],[/lynx/i,'Atari_-_Lynx'],[/jaguar/i,'Atari_-_Jaguar'],
+ [/turbografx|pc engine/i,'NEC_-_PC_Engine_-_TurboGrafx_16'],[/neo ?geo pocket/i,'SNK_-_Neo_Geo_Pocket_Color']];
+async function gcLibretro(it){const plats=[...new Set(`${it.creator},${it.platform}`.split(/[,/]/).map(x=>x.trim()).filter(Boolean).map(p=>(LIBRETRO.find(([rx])=>rx.test(p))||[])[1]).filter(Boolean))].slice(0,2);
+ if(!plats.length)return[];const name=it.title.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[&*/:`<>?\\|"]/g,'_').trim(),out=[];
+ for(const sys of plats){const b=`https://raw.githubusercontent.com/libretro-thumbnails/${sys}/master/`,f=(dir,reg)=>b+dir+'/'+encodeURIComponent(`${name} (${reg}).png`);
+  for(const reg of ['USA','USA, Europe','World','Europe','Japan','USA, Australia'])out.push({url:f('Named_Boxarts',reg),thumb:f('Named_Boxarts',reg),label:`Box art · ${reg}`,src:'libretro'});
+  for(const reg of ['USA','World','Europe'])out.push({url:f('Named_Titles',reg),thumb:f('Named_Titles',reg),label:`Title screen · ${reg}`,src:'libretro'},{url:f('Named_Snaps',reg),thumb:f('Named_Snaps',reg),label:`In game · ${reg}`,src:'libretro'})}
+ return out}
+async function gcWiki(it){const r=await getJSON(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=3&gsrsearch=${encodeURIComponent(it.title+' video game')}&prop=pageimages&piprop=original|thumbnail&pithumbsize=400&pilicense=any`);
+ return Object.values((r.query||{}).pages||{}).sort((a,b)=>a.index-b.index).filter(p=>p.original&&!/\.svg$/i.test(p.original.source)).map(p=>({url:p.original.source,thumb:(p.thumbnail||p.original).source,label:p.title,src:'Wikipedia'}))}
 // The open "other covers" panel: {k, busy, list, err, saving}.
 let CALT=null;
 // Covers that fail to load, or are tiny placeholders, are dropped from the picker.
-document.addEventListener('error',e=>{const t=e.target;if(t&&t.closest&&t.closest('.caltc'))t.closest('.caltc').remove()},true);
-document.addEventListener('load',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.caltc')&&t.naturalWidth<20)t.closest('.caltc').remove()},true);
+// They're remembered as missing, so switching the source filter doesn't bring them back, and the count follows.
+const caltDrop=c=>{if(CALT&&c.dataset.i!=null)(CALT.bad=CALT.bad||new Set()).add(+c.dataset.i);c.remove();const n=document.querySelector('.calt .caltn');if(n)n.textContent=caltCount()};
+document.addEventListener('error',e=>{const t=e.target;if(t&&t.closest&&t.closest('.caltc'))caltDrop(t.closest('.caltc'))},true);
+document.addEventListener('load',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('.caltc')&&t.naturalWidth<20)caltDrop(t.closest('.caltc'))},true);
+const caltShown=()=>CALT.list.map((c,i)=>[c,i]).filter(([c,i])=>!(CALT.bad&&CALT.bad.has(i))&&(!CALT.src||c.src===CALT.src));
+const caltCount=()=>{const n=document.querySelectorAll('.calt .caltc:not(.caltup)').length;return `${n} found${CALT&&CALT.src?' on '+CALT.src:''}.`};
 async function coverAlts(it){const k=it.k;CALT={k,busy:true,list:[],err:''};render();let list=[],err='';
  try{list=await COVERS[it.type](it);if(!list.length)err='No other covers found online for this one.'}catch(e){err=`Couldn’t load covers: ${e.message||e}.`}
  if(!CALT||CALT.k!==k)return;CALT={k,busy:false,list,err};render()}
@@ -3067,7 +3096,7 @@ async function coverUse(i){const c=CALT&&CALT.list[i];if(!c||CALT.saving||!CD)re
  try{cover=await saveCover(c.url)}catch(e){cover=c.url}
  if(!CD||CD.k!==CALT.k)return;CD.cover=cover;colPut(CD);save();CALT=null;render();toast('Cover changed');if(/^https:/.test(cover))setTimeout(colOfflineCovers,2000)}
 const coverPanel=()=>!CALT||!CD||CALT.k!==CD.k?'':`<section class="calt"><div class="head" style="margin:0 0 10px"><h2 style="margin:0">Other covers</h2><span class="row" style="margin:0"><button class="g" data-act="col:cover">${sym('upload-simple')}From your computer…</button><button class="g" data-act="col:altclose">Close</button></span></div>
-${CALT.busy?'<p class="meta">Looking for covers…</p>':CALT.err?`<p class="empty">${esc(CALT.err)}</p>`:`<p class="meta" style="margin:0 0 10px">${CALT.list.length} found. Click one to use it; it is saved for offline use.</p><div class="caltgrid"><button class="caltc caltup" data-act="col:cover" title="Choose an image from your computer"><span class="caltbox">${sym('upload-simple')}<b>From your computer</b></span><span class="meta">Local image</span></button>${CALT.list.map((c,i)=>`<button class="caltc ${CALT.saving===i?'busy':''}" data-act="col:altuse" data-i="${i}" title="${esc(c.label)}"><img src="${esc(c.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span class="meta">${esc(c.label||'')}</span></button>`).join('')}</div>`}</section>`;
+${CALT.busy?'<p class="meta">Looking for covers…</p>':CALT.err?`<p class="empty">${esc(CALT.err)}</p>`:`${(()=>{const srcs=[...new Set(CALT.list.filter((c,i)=>c.src&&!(CALT.bad&&CALT.bad.has(i))).map(c=>c.src))];return srcs.length>1?`<div class="moods seg caltsrc"><button data-act="col:altsrc" data-val="" class="${CALT.src?'':'on'}">All</button>${srcs.map(x=>`<button data-act="col:altsrc" data-val="${esc(x)}" class="${CALT.src===x?'on':''}" data-notr>${esc(x)}</button>`).join('')}</div>`:''})()}<p class="meta" style="margin:0 0 10px"><span class="caltn">${caltShown().length} found${CALT.src?' on '+esc(CALT.src):''}.</span> Click one to use it; it is saved for offline use.</p><div class="caltgrid ${CD.type==='game'?'caltgame':''}"><button class="caltc caltup" data-act="col:cover" title="Choose an image from your computer"><span class="caltbox">${sym('upload-simple')}<b>From your computer</b></span><span class="meta">Local image</span></button>${caltShown().map(([c,i])=>`<button class="caltc ${CALT.saving===i?'busy':''}" data-act="col:altuse" data-i="${i}" title="${esc([c.label,c.src].filter(Boolean).join(' · '))}"><img src="${esc(c.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span class="meta">${esc([c.src,c.label].filter(Boolean).join(' · '))}</span></button>`).join('')}</div>`}</section>`;
 // Adds a search result: TMDB gets a second request for the director and genres; the cover is downloaded (or linked if that fails).
 // Saves a cover for offline use and returns its attachment name. The desktop app downloads it itself (some image
 // hosts block web pages from fetching their files); a plain browser tries fetch, and the caller keeps the link if that fails.
@@ -3215,6 +3244,7 @@ function colAct(a,b){colFlush();const v=b.dataset.val;if(a==='back'||a==='open'|
  else if(a==='alts'&&CD){if(CALT&&CALT.k===CD.k)CALT=null;else{coverAlts(CD);return}}
  else if(a==='altclose')CALT=null
  else if(a==='altuse'){coverUse(+b.dataset.i);return}
+ else if(a==='altsrc'){if(CALT)CALT.src=b.dataset.val||''}
  else if(a==='nocover'&&CD){CD.cover='';colPut(CD)}
  else if(a==='dl'&&CD){CD.downloaded=CD.downloaded===v?'':v;colPut(CD)}
  else if(a==='fld'){const tp=b.dataset.type,id=b.dataset.id,cur=fieldsFor(tp).filter(f=>fieldOn(tp,f.id)).map(f=>f.id);CFG.colFields={...CFG.colFields,[tp]:cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]};saveCfg()}
