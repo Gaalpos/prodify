@@ -662,7 +662,7 @@ function navCount(id){const t=TD();switch(id){
  case 'health':{const ws=weekStart(t);return workouts().filter(d=>d>=ws).length}
  default:return ''}}
 function renderNav(){const icons=CFG.navLayout==='icons'||CFG.navLayout==='grid',cards=CFG.navLayout==='cards'||icons;
- $('nav').innerHTML=`<div class="logo"><span>Prodify</span>${CFG.navLayout!=='top'?`<button class="navpin ${CFG.navAuto?'on':''}" data-act="navAuto" aria-pressed="${!!CFG.navAuto}" title="Auto-hide sidebar: ${CFG.navAuto?'on':'off'} (Ctrl+B)" aria-label="Auto-hide sidebar">${sym('sidebar-simple')}</button>`:''}</div>`+visTabs().map(t=>{const e=ico(t[0]),c=cards&&CFG.navCounts!==false&&!(CFG.navNoCount||[]).includes(t[0])?navCount(t[0]):'';
+ $('nav').innerHTML=`<div class="logo"><span>Prodify</span>${CFG.navLayout!=='top'?`<button class="navpin ${CFG.navAuto?'on':''}" data-act="navAuto" aria-pressed="${!!CFG.navAuto}" title="Auto-hide sidebar: ${CFG.navAuto?'on':'off'} (Ctrl+B)" aria-label="Auto-hide sidebar">${sym('sidebar-simple')}</button>`:''}</div>`+visTabs().filter(t=>!navHid(t[0])).map(t=>{const e=ico(t[0]),c=cards&&CFG.navCounts!==false&&!(CFG.navNoCount||[]).includes(t[0])?navCount(t[0]):'';
   return `<button data-act="nav" data-v="${t[0]}" data-dnd="tab" data-id="${t[0]}" title="${icons?esc(t[1]):'Drag to reorder'}" aria-label="${esc(t[1])}" class="navb ${view===t[0]?'on':''} ${cards&&!icons&&(CFG.navWide||[]).includes(t[0])?'wide':''}" style="--tc:${vivid(secColor(t[0]))}"><span class="ni">${icoHTML(t[0])}</span><span class="nl">${esc(t[1])}</span>${c!==''&&!(icons&&!+c)?`<span class="nc" aria-label="${c} items">${c}</span>`:''}</button>`}).join('')}
 // Phone tab bar (shown instead of the sidebar on narrow windows): Home, three sections you pick, and More,
 // a sheet with every other section. "Edit" in that sheet picks the three (CFG.mobTabs).
@@ -687,6 +687,8 @@ const secOn=id=>!(CFG.tabOff||[]).includes(id);
 const cOn=(sec,k)=>secOn(sec)&&CFG[k]!==false;
 const tabList=()=>{const all=TABS.map(t=>t[0]),o=(CFG.tabOrder||[]).filter(i=>all.includes(i)),ex=all.filter(i=>!o.includes(i)),si=o.indexOf('settings'),ids=si>=0?[...o.slice(0,si),...ex,...o.slice(si)]:[...o,...ex];return ids.map(id=>TABS.find(t=>t[0]===id))};
 const visTabs=()=>tabList().filter(t=>t[0]==='settings'||secOn(t[0]));
+// Sections hidden from the sidebar (CFG.navHid) stay on: Home, search, commands and the phone's More sheet still reach them.
+const navHid=id=>(CFG.navHid||[]).includes(id),navHidSet=(id,h)=>{CFG.navHid=[...(CFG.navHid||[]).filter(x=>x!==id),...(h?[id]:[])];saveCfg()};
 // With nothing in progress, Home suggests one of the "Want to" items (a different one each day; Another picks again).
 let colSug=0;
 const colSuggest=()=>{const ws=colKeys().map(colRead).filter(x=>x.status==='want');if(!ws.length)return '<p class="empty">Nothing in progress. Set a collection item to Reading, Watching or Playing.</p>';
@@ -923,7 +925,7 @@ const setOrder=(g,a)=>{if(g==='mtab'){CFG.mobTabs=a;saveCfg();return}if(g==='sho
  if(g==='tab')CFG.tabOrder=a;else CFG.homeOrder=a;saveCfg()};
 function moveItem(g,from,to){const o=orderOf(g),fi=o.indexOf(from),ti0=o.indexOf(to);if(fi<0||ti0<0||from===to)return;
  const a=o.filter(x=>x!==from),ti=a.indexOf(to);a.splice(fi<ti0?ti+1:ti,0,from);setOrder(g,a);redraw()}
-const dndRow=(g,id,label,on,locked,note)=>{const e=g==='tab'?ico(id):'';return `<div class="drow" data-dnd="${g}" data-id="${id}"><span class="grip" aria-hidden="true">⠿</span>${g==='tab'?`<button class="x ico" data-act="icoPick" data-id="${id}" aria-label="Choose icon for ${esc(label)}" title="Choose icon">${icoHTML(id)||'＋'}</button>`:''}<span class="dl">${esc(label)}${note?` <span class="meta">${note}</span>`:''}</span>${g==='tab'?(w=>`<div class="moods seg sm" role="group" aria-label="Card width in the Cards layout" title="Card width in the Cards layout">${[['1','1 col',!w],['2','2 col',w]].map(([v,l,on])=>`<button data-act="wideSet" data-id="${id}" data-val="${v}" class="${on?'on':''}" aria-pressed="${on}">${l}</button>`).join('')}</div>`)((CFG.navWide||[]).includes(id)):''}${locked?'<span class="meta" style="min-width:56px;text-align:center">Always on</span>':swBtn(on,`data-act="tgl" data-g="${g}" data-id="${id}"`,label)}</div>`+(g==='tab'&&icoPick===id?picker(id,e):'')};
+const dndRow=(g,id,label,on,locked,note)=>{const e=g==='tab'?ico(id):'';return `<div class="drow" data-dnd="${g}" data-id="${id}"><span class="grip" aria-hidden="true">⠿</span>${g==='tab'?`<button class="x ico" data-act="icoPick" data-id="${id}" aria-label="Choose icon for ${esc(label)}" title="Choose icon">${icoHTML(id)||'＋'}</button>`:''}<span class="dl">${esc(label)}${note?` <span class="meta">${note}</span>`:''}</span>${g==='tab'?(w=>`<div class="moods seg sm" role="group" aria-label="Card width in the Cards layout" title="Card width in the Cards layout">${[['1','1 col',!w],['2','2 col',w]].map(([v,l,on])=>`<button data-act="wideSet" data-id="${id}" data-val="${v}" class="${on?'on':''}" aria-pressed="${on}">${l}</button>`).join('')}</div>`)((CFG.navWide||[]).includes(id)):''}${g==='tab'?(h=>`<button class="x ico navhidb ${h?'off':''}" data-act="navHidT" data-id="${id}" aria-pressed="${!h}" title="${h?'Hidden from the sidebar. Click to show it':'Shown in the sidebar. Click to hide it'}" aria-label="${h?'Show':'Hide'} ${esc(label)} in the sidebar">${lineIco(h?'M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.6 3.4M6.6 6.6C3.6 8.4 2 12 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2':'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z')}</button>`)(navHid(id)):''}${locked?'<span class="meta" style="min-width:56px;text-align:center">Always on</span>':swBtn(on,`data-act="tgl" data-g="${g}" data-id="${id}"`,label)}</div>`+(g==='tab'&&icoPick===id?picker(id,e):'')};
 /* Icon picker: category tabs and search over every emoji (emojis.js) or symbol (icons.js). */
 let pcat=0,pq='';
 const ECATS=()=>[['Suggested',EMOJIS.map(m=>[m,''])],...EMOJICAT];
@@ -2952,7 +2954,7 @@ ${secOn('tasks')?swRow('Confirm before deleting a task','confirmTask',CFG.confir
 ${secOn('notes')?swRow('Confirm before deleting a note','confirmNote',CFG.confirmNote):''}
 ${secOn('projects')?swRow('Confirm before deleting a project','confirmProject',CFG.confirmProject):''}
 ${secOn('journal')?swRow('Confirm before deleting a question','confirmQuestion',CFG.confirmQuestion):''}</section>
-<section><h2>Sections</h2><p class="meta" style="margin:0 0 10px">Drag to reorder. Click the icon to change it. 1 col / 2 col sets how wide its card is in the Cards layout. Turning a section off disables it everywhere: it leaves the sidebar, Home, search, commands, Calendar, reminders and the settings that belong to it, and other sections stop linking to it. Your files are kept and come back when you turn it on.</p>${tabList().map(t=>dndRow('tab',t[0],t[1],secOn(t[0]),t[0]==='settings')).join('')}</section>
+<section><h2>Sections</h2><p class="meta" style="margin:0 0 10px">Drag to reorder. Click the icon to change it. 1 col / 2 col sets how wide its card is in the Cards layout. The eye hides a section from the sidebar only; it keeps working everywhere else. Turning a section off disables it everywhere: it leaves the sidebar, Home, search, commands, Calendar, reminders and the settings that belong to it, and other sections stop linking to it. Your files are kept and come back when you turn it on.</p>${tabList().map(t=>dndRow('tab',t[0],t[1],secOn(t[0]),t[0]==='settings')).join('')}</section>
 <section><h2>Home cards</h2><p class="meta" style="margin:0 0 10px">You can also drag cards directly on Home with the Customize button.</p>${secOn('collections')||secOn('tasks')?`<div class="row" style="margin:0 0 10px">${secOn('tasks')?'<button class="g" data-act="tcNew">+ Task list card</button>':''}${secOn('collections')?'<button class="g" data-act="ccNew">+ Collection card</button>':''}</div>`:''}${homeList().map(id=>{const x=homeDefs().find(y=>y[0]===id);return dndRow('home',id,x[1],!(CFG.homeOff||[]).includes(id),false,x[2]&&!secOn(x[2])?'· its section is off':'')}).join('')}</section>
 ${accSettings()}${cloudSection()}${usersSettings()}${backupSettings()}
 <section><h2>Integrations</h2>
@@ -4116,6 +4118,7 @@ else if(a==='wide'){const id=b.dataset.id,cur=CFG.navWide||[];CFG.navWide=cur.in
 else if(a==='setSym')setIcon(b.dataset.id,'symbol',b.dataset.val);
 else if(a==='symDef')setIcon(b.dataset.id,'symbol',null);
 else if(a==='icoDef')setIcon(b.dataset.id,'emoji',null);
+else if(a==='navHidT'){navHidSet(b.dataset.id,!navHid(b.dataset.id))}
 else if(a==='tgl'){const g2=b.dataset.g,id=b.dataset.id,key=g2==='tab'?'tabOff':homeOffKey(),cur=g2==='tab'?(CFG.tabOff||[]):homeOff();if(g2==='tab'&&id==='settings')return;CFG[key]=cur.includes(id)?cur.filter(x=>x!==id):[...cur,id];saveCfg()}
 else if(a==='mv'){const g2=b.dataset.g,id=b.dataset.id,o=orderOf(g2),i0=o.indexOf(id),i1=i0+(+b.dataset.dir);if(i0<0||i1<0||i1>=o.length)return;[o[i0],o[i1]]=[o[i1],o[i0]];setOrder(g2,o)}
 else if(a==='expN'){expd.has(k)?expd.delete(k):expd.add(k)}
@@ -4265,7 +4268,7 @@ const navCtx=()=>{const id=ctxK.slice(4),w=(CFG.navWide||[]).includes(id),cnt=!(
  return `${CFG.navLayout==='cards'?`<p class="ctxlab">Card width</p><button role="menuitemradio" aria-checked="${!w}" data-ctx="nwide" data-v="1"><span class="ctxchk">${w?'':'✓'}</span>1 col</button><button role="menuitemradio" aria-checked="${w}" data-ctx="nwide" data-v="2"><span class="ctxchk">${w?'✓':''}</span>2 col</button>`:''}${['cards','icons','grid'].includes(CFG.navLayout)?`
 ${navCount(id)!==''?`<button role="menuitemcheckbox" aria-checked="${cnt}" data-ctx="ncount"><span class="ctxchk">${cnt?'✓':''}</span>Show item count</button>`:''}
 <p class="ctxlab">Color</p><div class="ctxsw">${LCOLORS.map(c=>`<button class="lsw ${col===c?'on':''}" data-ctx="ncolor" data-v="${c}" style="background:${c}" aria-label="Color ${c}" aria-pressed="${col===c}"></button>`).join('')}${swCustom(own&&!LCOLORS.includes(col)?col:'',`data-navcolor="${id}"`,'lsw')}</div>${own?'<button role="menuitem" data-ctx="ncolreset">Default color</button>':''}`:''}
-<button role="menuitem" data-ctx="nicon">Change icon…</button><hr class="ctxhr">${layoutItems()}${CFG.navLayout!=='top'?`<hr class="ctxhr">${sidebarItems()}`:''}${id==='settings'?'':`<hr class="ctxhr"><button role="menuitem" class="danger" data-ctx="nhide">Turn off <span>${esc((tabList().find(t=>t[0]===id)||[0,"section"])[1])}</span></button>`}`};
+<button role="menuitem" data-ctx="nicon">Change icon…</button><hr class="ctxhr">${layoutItems()}${CFG.navLayout!=='top'?`<hr class="ctxhr">${sidebarItems()}`:''}<hr class="ctxhr"><button role="menuitem" data-ctx="nhid">Hide from sidebar</button>${id==='settings'?'':`<button role="menuitem" class="danger" data-ctx="nhide">Turn off <span>${esc((tabList().find(t=>t[0]===id)||[0,"section"])[1])}</span></button>`}`};
 // On a note category (ctxK is "cat:<name>"): Edit and Delete (it is removed from its notes; the notes stay).
 let ctxCatSc='notes';
 const catCtx=()=>{const n=ctxK.slice(4),e=allCats(ctxCatSc).get(n.toLowerCase()),c=e?e.keys.length:0,w=ctxCatSc==='journal'?'day':'note';
@@ -4274,7 +4277,7 @@ const catCtx=()=>{const n=ctxK.slice(4),e=allCats(ctxCatSc).get(n.toLowerCase())
 const NAVLAYOUTS=[['side','Sidebar'],['cards','Cards'],['grid','Icon grid'],['icons','Icons'],['top','Top bar']];
 const layoutItems=()=>`<p class="ctxlab">Layout</p>${NAVLAYOUTS.map(([v,l])=>`<button role="menuitemradio" aria-checked="${CFG.navLayout===v}" data-ctx="nlayout" data-v="${v}"><span class="ctxchk">${CFG.navLayout===v?'✓':''}</span>${l}</button>`).join('')}`;
 // On the sidebar itself (ctxK is "navbar"): keep it shown or let it hide until hovered.
-const sidebarItems=()=>`<p class="ctxlab">Sidebar</p><button role="menuitemradio" aria-checked="${!CFG.navAuto}" data-ctx="nbshow"><span class="ctxchk">${CFG.navAuto?'':'✓'}</span>Always show</button><button role="menuitemradio" aria-checked="${!!CFG.navAuto}" data-ctx="nbhide"><span class="ctxchk">${CFG.navAuto?'✓':''}</span>Hide, show on hover</button>`;
+const sidebarItems=()=>`<p class="ctxlab">Sidebar</p><button role="menuitemradio" aria-checked="${!CFG.navAuto}" data-ctx="nbshow"><span class="ctxchk">${CFG.navAuto?'':'✓'}</span>Always show</button><button role="menuitemradio" aria-checked="${!!CFG.navAuto}" data-ctx="nbhide"><span class="ctxchk">${CFG.navAuto?'✓':''}</span>Hide, show on hover</button>${(t=>t.length?`<p class="ctxlab">Hidden sections</p>${t.map(x=>`<button role="menuitem" data-ctx="nunhid" data-v="${x[0]}">Show <span>${esc(x[1])}</span></button>`).join('')}`:'')(visTabs().filter(x=>navHid(x[0])))}`;
 const navbarCtx=()=>`${layoutItems()}<hr class="ctxhr">${sidebarItems()}`;
 /* On a task (ctxK is "task:<index>"): done, important (high priority), in progress, focus session, edit, subtask,
    due date, list and delete. */
@@ -4359,7 +4362,7 @@ document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest
   else if(a==='hchide'){const hk=homeOffKey();CFG[hk]=[...new Set([...homeOff(),id])];saveCfg();render();toast(boardMode()?'Card hidden on the board. Bring it back from Customize Home':'Card hidden. Bring it back from Customize Home');return}
   else if(a==='hcedit'){homeEdit=true;render();return}
   CFG.homeColors=o;saveCfg();render();return}
- if(k==='navbar'){const a=c.dataset.ctx;closeCtx();if(a==='nbshow'&&CFG.navAuto)navAutoSet(false);if(a==='nbhide'&&!CFG.navAuto)navAutoSet(true);return}
+ if(k==='navbar'){const a=c.dataset.ctx;closeCtx();if(a==='nunhid'){navHidSet(c.dataset.v,false);render();return}if(a==='nbshow'&&CFG.navAuto)navAutoSet(false);if(a==='nbhide'&&!CFG.navAuto)navAutoSet(true);return}
  if(k&&k.startsWith('cat:')){const n=k.slice(4),a=c.dataset.ctx;
   if(a==='catedit'){closeCtx();const sc=ctxCatSc,b=catBase(n,sc)||{},nm=(allCats(sc).get(n.toLowerCase())||{name:n}).name;catEd={sc,orig:nm,name:nm,sym:b.sym||'folder',emoji:b.emoji||'📁'};icoPick=null;
    if(sc==='journal'){view='journal';jtab='entries';render();window.scrollTo(0,0);const i=$('catname');if(i){i.focus();i.select()}return}
@@ -4374,6 +4377,8 @@ document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest
   if(a==='ncolreset'){const o={...(CFG.navColors||{})};delete o[id];CFG.navColors=o;saveCfg()}
   if(a==='nwide'){const cur=(CFG.navWide||[]).filter(x=>x!==id);CFG.navWide=c.dataset.v==='2'?[...cur,id]:cur;saveCfg()}
   if(a==='nicon'){view='settings';SETG='sections';setQ='';icoPick=id;render();const r=document.querySelector(`.drow [data-act="icoPick"][data-id="${id}"]`);if(r)r.scrollIntoView({block:'center'});return}
+  if(a==='nunhid'){navHidSet(c.dataset.v,false)}
+  if(a==='nhid'){navHidSet(id,true);toast(`${(tabList().find(t=>t[0]===id)||[0,'Section'])[1]} hidden from the sidebar. Right-click the sidebar to show it again`)}
   if(a==='nhide'&&id!=='settings'){CFG.tabOff=[...(CFG.tabOff||[]).filter(x=>x!==id),id];saveCfg();toast('Section turned off everywhere. Turn it back on in Settings → Sections')}
   render();return}
  if(k&&k.startsWith('col:')){const ck=k.slice(4),a=c.dataset.ctx;if(!FS[ck]){closeCtx();return}const it=colRead(ck),fresh=()=>{if(CD&&CD.k===ck)CD=null};

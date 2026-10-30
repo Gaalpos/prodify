@@ -2319,3 +2319,5 @@ body.shine .ccard:hover .ccov:not(.tilt){transform:none;box-shadow:none}
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 }
+/* Settings → Sections: the eye that hides a section from the sidebar */
+.drow .navhidb{color:var(--ink)}.drow .navhidb.off{color:var(--mut);opacity:.7}.drow .navhidb .sym{width:17px;height:17px}
