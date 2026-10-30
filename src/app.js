@@ -83,7 +83,7 @@ const save=()=>{if(LOCKED||!ACCREADY)return;
   if(TAURI)await TAURI.invoke('sync_files',{write,remove});else{remove.forEach(k=>delete LSRAW[k]);Object.assign(LSRAW,write);localStorage.setItem(K+USUF,JSON.stringify(LSRAW))}
   gone.forEach(k=>{delete DISK[k];delete RAW[k];delete DISKK[k]});Object.assign(DISK,plain);for(const k in plain){RAW[k]=write[dks[k]];DISKK[k]=dks[k];NEEDW.delete(k)}if(typeof mirSoon==='function')mirSoon();if(typeof cloudSoon==='function')cloudSoon()},'your files')};
 const HERE=TAURI?'in your Prodify folder':'in this browser';
-const DEF={appIcon:'aurora',aiUse:true,searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
+const DEF={wxShow:true,appIcon:'aurora',aiUse:true,searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
 let CFG={...DEF};
 try{Object.assign(CFG,JSON.parse(store.get('daybook.settings.v1'+USUF)||'{}'))}catch(e){}
 // Category covers became the default view; switch an old Tiles default over once.
@@ -728,7 +728,7 @@ const hcSec=id=>id.startsWith('cc:')?'collections':id.startsWith('tc:')?'tasks':
 const hcKey=()=>boardMode()?'boardColors':'homeColors',hcMap=()=>(boardMode()&&CFG.boardColors?CFG.boardColors:CFG.homeColors)||{};
 const hcOwn=id=>hcMap()[id]||'',hcColor=id=>hcOwn(id)||secColor(hcSec(id));
 const homeCtx=()=>{const id=ctxK.slice(3),own=hcOwn(id),col=hcColor(id);
- return `<p class="ctxlab">Card color</p><div class="ctxsw">${LCOLORS.map(c=>`<button class="lsw ${own===c?'on':''}" data-ctx="hccol" data-v="${c}" style="background:${c}" aria-label="Color ${c}" aria-pressed="${own===c}"></button>`).join('')}${swCustom(own&&!LCOLORS.includes(own)?own:'',`data-homecolor="${esc(id)}"`,'lsw')}</div>${own?'<button role="menuitem" data-ctx="hcreset">Default color</button>':''}<hr class="ctxhr"><button role="menuitem" data-ctx="hcedit">Customize Home…</button><button role="menuitem" data-ctx="hchide">Hide this card</button>`};
+ return `<p class="ctxlab">Card color</p><div class="ctxsw">${LCOLORS.map(c=>`<button class="lsw ${own===c?'on':''}" data-ctx="hccol" data-v="${c}" style="background:${c}" aria-label="Color ${c}" aria-pressed="${own===c}"></button>`).join('')}${swCustom(own&&!LCOLORS.includes(own)?own:'',`data-homecolor="${esc(id)}"`,'lsw')}</div>${own?'<button role="menuitem" data-ctx="hcreset">Default color</button>':''}<hr class="ctxhr">${id==='weather'?`<button role="menuitemcheckbox" aria-checked="${CFG.wxShow!==false}" data-ctx="hcwx"><span class="ctxchk">${CFG.wxShow!==false?'✓':''}</span>Show weather</button>`:''}<button role="menuitem" data-ctx="hcedit">Customize Home…</button><button role="menuitem" data-ctx="hchide">Hide this card</button>`};
 // A Home card's opening tag: its color (--cc) and classes added to whatever style/class it already has.
 const hcAttrs=(a,id)=>{const c=hcColor(id),cl=[homeEdit?'dragcard':'',hcOwn(id)?'hcolored':''].filter(Boolean).join(' ');
  a=/style="/.test(a)?a.replace('style="',`style="--cc:${c};`):a+` style="--cc:${c}"`;if(cl)a=/class="/.test(a)?a.replace('class="',`class="${cl} `):a+` class="${cl}"`;return a};
@@ -1074,6 +1074,7 @@ const SETS=()=>[
  ['Collections API keys','tmdb rawg movies games books series anime key connections catalog',colSettings],
  ['Commands','slash / shortcuts keywords words note task event project',cmdSettings],
  ['Where your data is kept','storage folder files location directory data save path disk vault app storage database markdown sqlite private inside',()=>(STORE_DB?'':storageBody())+storeModeBody(),'raw'],
+ ['Show weather on Home','weather show hide toggle forecast home card time clock',()=>swRow('Show weather on Home','wxShow',CFG.wxShow!==false)],
  ['Weather city','weather city location town forecast temperature home card time clock',()=>wxSettings()],
  ['Your name','greeting',()=>`<input id="sname" value="${esc(CFG.name)}" placeholder="Optional" style="max-width:260px">`],
  ['Daily reflection question','journal prompt home',()=>onOff('prompts')],
@@ -1269,8 +1270,10 @@ async function wxFind(q){q=q.trim();if(!q){CFG.weather=null;WX=null;saveCfg();re
   if(!g){toast(`No city found for “${q}”`);return}CFG.weather={name:g.name,admin:g.admin1||'',country:g.country||'',lat:+g.latitude.toFixed(3),lon:+g.longitude.toFixed(3)};WX=null;saveCfg();toast(`Weather city: ${g.name}${g.country?', '+g.country:''}`);render();wxLoad(true)}
  catch(e){toast('Couldn’t look up that city. Check your connection.')}}
 const clockNow=()=>{const d=new Date();return tf(pad(d.getHours())+':'+pad(d.getMinutes()))};
-function wxCard(){const c=CFG.weather,d=new Date();if(c)wxLoad();
+// With Show weather off (CFG.wxShow) the card is just the clock and date, and no forecast is fetched.
+function wxCard(){const c=CFG.wxShow!==false&&CFG.weather,d=new Date();if(c)wxLoad();
  const clock=`<div class="wxclock"><b id="hclock">${clockNow()}</b><span class="meta">${fmt(TD(),{weekday:'long',month:'long',day:'numeric'})}</span></div>`;
+ if(CFG.wxShow===false)return `<section class="wxcard wxoff">${clock}</section>`;
  if(!c)return `<section class="wxcard">${clock}<div class="wxset"><span class="meta">Add your city to see the weather here.</span><button class="g" data-act="wxSet">Set city</button></div></section>`;
  const W=WX&&WX.lat===c.lat&&WX.lon===c.lon?WX:null;
  if(!W)return `<section class="wxcard">${clock}<p class="meta wxload">${wxErr?esc(wxErr)+' <button class="x" data-act="wxRetry">Try again</button>':'Loading the weather…'}</p></section>`;
@@ -2913,7 +2916,7 @@ async function switchFolder(copy){const path=pendDir;if(!path)return;if(path===B
 const swBtn=(on,attrs,label)=>`<button class="sw ${on?'on':''}" role="switch" aria-checked="${!!on}" aria-label="${esc(label||'')}" ${attrs}><i></i></button>`;
 const tog=(s,on,label)=>swBtn(on,`data-act="set" data-s="${s}" data-val="${on?'off':'on'}"`,label);
 const swRow=(label,s,on)=>`<div class="swrow"><span>${label}</span>${tog(s,on,label)}</div>`;
-const wxSettings=()=>`${L('Weather city')}<div class="row" style="margin:0;gap:8px;flex-wrap:nowrap;max-width:420px"><input id="wcity" value="${esc(CFG.weather?CFG.weather.name:'')}" placeholder="For example Madrid" autocomplete="off" aria-label="Weather city"><button class="g" data-act="wxFind">Save</button></div><p class="meta" style="margin:6px 0 0">${CFG.weather?`Showing the weather for ${esc([...new Set([CFG.weather.name,CFG.weather.admin,CFG.weather.country].filter(Boolean))].join(', '))}. Leave it empty and save to turn it off.`:'Shown on the Time & weather card on Home. Forecasts come from Open-Meteo.'}</p>${L('Temperature')}${seg('tempUnit',[['c','°C'],['f','°F']],CFG.tempUnit==='f'?'f':'c')}`;
+const wxSettings=()=>`${swRow('Show weather on Home','wxShow',CFG.wxShow!==false)}${L('Weather city')}<div class="row" style="margin:0;gap:8px;flex-wrap:nowrap;max-width:420px"><input id="wcity" value="${esc(CFG.weather?CFG.weather.name:'')}" placeholder="For example Madrid" autocomplete="off" aria-label="Weather city"><button class="g" data-act="wxFind">Save</button></div><p class="meta" style="margin:6px 0 0">${CFG.weather?`Showing the weather for ${esc([...new Set([CFG.weather.name,CFG.weather.admin,CFG.weather.country].filter(Boolean))].join(', '))}. Leave it empty and save to turn it off.`:'Shown on the Time & weather card on Home. Forecasts come from Open-Meteo.'}</p>${L('Temperature')}${seg('tempUnit',[['c','°C'],['f','°F']],CFG.tempUnit==='f'?'f':'c')}`;
 const seg=(s,o,c)=>`<div class="moods seg">${o.map(([v,l])=>`<button data-act="set" data-s="${s}" data-val="${v}" class="${String(c)===String(v)?'on':''}">${l}</button>`).join('')}</div>`;
 const L=t=>`<p class="meta" style="margin:14px 0 6px">${t}</p>`;
 /* App icon (CFG.appIcon): the white brain on a gradient of the section colors or on a plain color. Aurora is the
@@ -4408,6 +4411,7 @@ document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest
   if(a==='hccol')o[id]=c.dataset.v;else if(a==='hcreset')delete o[id];
   else if(a==='hchide'){const hk=homeOffKey();CFG[hk]=[...new Set([...homeOff(),id])];saveCfg();render();toast(boardMode()?'Card hidden on the board. Bring it back from Customize Home':'Card hidden. Bring it back from Customize Home');return}
   else if(a==='hcedit'){homeEdit=true;render();return}
+  else if(a==='hcwx'){CFG.wxShow=CFG.wxShow===false;saveCfg();render();return}
   CFG[hcKey()]=o;saveCfg();render();return}
  if(k==='hl'){closeCtx();CFG.hlColor=c.dataset.v;saveCfg();document.querySelectorAll('[data-md="mark"]').forEach(b=>b.innerHTML=hlIco());const ta=$('nb');if(ta&&ta.selectionEnd>ta.selectionStart)mdDo('mark');else if(ta)ta.focus();return}
  if(k==='navbar'){const a=c.dataset.ctx;closeCtx();if(a==='nunhid'){navHidSet(c.dataset.v,false);render();return}if(a==='nbshow'&&CFG.navAuto)navAutoSet(false);if(a==='nbhide'&&!CFG.navAuto)navAutoSet(true);return}
