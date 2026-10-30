@@ -83,7 +83,7 @@ const save=()=>{if(LOCKED||!ACCREADY)return;
   if(TAURI)await TAURI.invoke('sync_files',{write,remove});else{remove.forEach(k=>delete LSRAW[k]);Object.assign(LSRAW,write);localStorage.setItem(K+USUF,JSON.stringify(LSRAW))}
   gone.forEach(k=>{delete DISK[k];delete RAW[k];delete DISKK[k]});Object.assign(DISK,plain);for(const k in plain){RAW[k]=write[dks[k]];DISKK[k]=dks[k];NEEDW.delete(k)}if(typeof mirSoon==='function')mirSoon();if(typeof cloudSoon==='function')cloudSoon()},'your files')};
 const HERE=TAURI?'in your Prodify folder':'in this browser';
-const DEF={aiUse:true,searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
+const DEF={appIcon:'aurora',aiUse:true,searchLow:true,homeFixed:false,pageWidth:'wide',zoom:100,calView:'month',theme:'system',palette:'classic',accent:'teal',font:'jetbrains',size:16,week:1,time:'24',name:'',prompts:true,focus:[],confirmTask:true,confirmNote:true,confirmProject:true,confirmQuestion:true,navLayout:'cards',cmdKeys:{},propTypes:{created:'date'},defaultTpl:'',notesView:'panel',notesSort:'date',newNoteFocus:'title',noteOpen:'view',jInNotes:true,catView:'covers',catSort:'alpha',navCounts:true,lang:'en',scrollbars:false,navAuto:false,cardColors:'soft',homeCols:3,healthCols:2,shineColor:'status',iconStyle:'symbols',shine:true,icons:{},syms:{},tabOrder:[],tabOff:[],navWide:[],homeOrder:[],homeOff:[],intAi:true,intRem:true,intNotif:true,calTasks:true,calJournal:true,calNotes:true,calHabits:true,calProjects:true,start:'today'};
 let CFG={...DEF};
 try{Object.assign(CFG,JSON.parse(store.get('daybook.settings.v1'+USUF)||'{}'))}catch(e){}
 // Category covers became the default view; switch an old Tiles default over once.
@@ -157,9 +157,14 @@ function applyZoom(){const z=(ZOOMS.includes(+CFG.zoom)?+CFG.zoom:100)/100,wv=wi
  else document.documentElement.style.zoom=z===1?'':String(z)}
 // CSS zoom scales fixed positions too; screen coordinates are divided by it before being used as left/top.
 const cz=()=>parseFloat(document.documentElement.style.zoom)||1;
+// Home board zoom (CFG.hbZoom, %): on the board, Ctrl + / Ctrl − / Ctrl 0 zoom the board instead of the whole app.
+const HBZ=[50,60,70,80,90,100,110,125,150,175,200],hbZ=()=>HBZ.includes(+CFG.hbZoom)?+CFG.hbZoom:100,hbZf=()=>hbZ()/100;
+function hbZoomStep(d){const i=HBZ.indexOf(hbZ()),n=d===0?100:HBZ[Math.max(0,Math.min(HBZ.length-1,i+d))];if(n===hbZ()&&d)return;CFG.hbZoom=n;saveCfg();
+ const b=$('hboard');if(b){b.style.zoom=n/100;hbFit()}const o=document.querySelector('.hbzoom b');if(o)o.textContent=n+'%';toast(`Board zoom ${n}%`)}
+const onBoard=()=>view==='today'&&typeof boardMode==='function'&&boardMode()&&!!$('hboard');
 function zoomStep(d){const i=ZOOMS.indexOf(ZOOMS.includes(+CFG.zoom)?+CFG.zoom:100),n=d===0?100:ZOOMS[Math.max(0,Math.min(ZOOMS.length-1,i+d))];if(n===+CFG.zoom&&d)return;CFG.zoom=n;saveCfg();applyZoom();if(view==='settings')render();toast(`Zoom ${n}%`)}
-document.addEventListener('keydown',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)return;const k=e.key;if(k==='='||k==='+'){e.preventDefault();zoomStep(1)}else if(k==='-'||k==='_'){e.preventDefault();zoomStep(-1)}else if(k==='0'){e.preventDefault();zoomStep(0)}});
-function apply(){applyZoom();document.body.classList.toggle('shine',CFG.shine!==false);document.body.classList.toggle('shine-plain',CFG.shineColor==='white');document.body.classList.toggle('vivid',CFG.cardColors==='vibrant');document.documentElement.classList.toggle('noscroll',!CFG.scrollbars);document.documentElement.lang=CFG.lang==='es'?'es':'en';setTimeout(()=>{if(CFG.lang==='es')i18nRun(document.body);else i18nRestore(document.body)});
+document.addEventListener('keydown',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)return;const k=e.key,z=onBoard()?hbZoomStep:zoomStep;if(k==='='||k==='+'){e.preventDefault();z(1)}else if(k==='-'||k==='_'){e.preventDefault();z(-1)}else if(k==='0'){e.preventDefault();z(0)}});
+function apply(){applyZoom();appIconApply();document.body.classList.toggle('shine',CFG.shine!==false);document.body.classList.toggle('shine-plain',CFG.shineColor==='white');document.body.classList.toggle('vivid',CFG.cardColors==='vibrant');document.documentElement.classList.toggle('noscroll',!CFG.scrollbars);document.documentElement.lang=CFG.lang==='es'?'es':'en';setTimeout(()=>{if(CFG.lang==='es')i18nRun(document.body);else i18nRestore(document.body)});
  const r=document.documentElement,a=ACC[CFG.accent]||ACC.teal,ap=document.getElementById('app');if(ap){ap.className='nav-'+(CFG.navLayout||'side')+(CFG.navAuto&&CFG.navLayout!=='top'?' navauto':'')+(CFG.navLayout==='cards'&&navCols()===3?' navc3':'');ap.classList.remove('navshow')}navWidth();
  CFG.theme==='system'?r.removeAttribute('data-theme'):r.setAttribute('data-theme',CFG.theme);r.dataset.style=['accent','colorful','mono','material'].includes(CFG.uiStyle)?CFG.uiStyle:'default';r.dataset.pal=THEMES[CFG.palette]?CFG.palette:'classic';
  const t=THEMES[CFG.palette]||THEMES.classic,dk=themeVars(t,1);
@@ -401,7 +406,7 @@ const wlCap=(raw,alias)=>{const t=unesc(raw).trim(),x=wlIndex().get(fold(t)),lab
 const il=s=>{const codes=[],wls=[];s=esc(s).replace(/`([^`]+)`/g,(_,c)=>{codes.push(c);return `\u0000${codes.length-1}\u0000`}).replace(/\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g,(_,t,a)=>{wls.push(wlCap(t,a));return `\u0001${wls.length-1}\u0001`});
  s=s.replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:)[^)\s]+)\)/g,(_,t,u)=>mdA(u,t)).replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,(_,p,u)=>p+mdA(u,u))
   .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\*)/g,'$1<i>$2</i>').replace(/(^|[^\w])_([^_\s][^_]*?)_(?!\w)/g,'$1<i>$2</i>')
-  .replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/==(.+?)==/g,'<mark>$1</mark>');
+  .replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/&lt;mark style=&quot;background: ?(#[0-9a-fA-F]{6,8});?&quot;&gt;(.+?)&lt;\/mark&gt;/g,'<mark style="background:$1">$2</mark>').replace(/==(.+?)==/g,'<mark>$1</mark>');
  return s.replace(/\u0000(\d+)\u0000/g,(_,i)=>`<code>${codes[+i]}</code>`).replace(/\u0001(\d+)\u0001/g,(_,i)=>wls[+i])};
 function md(src){src=src.replace(/^---\n[\s\S]*?\n---\n?/,'');let h='',lt='',m,imgs=[],code=null;
  const cl=()=>{if(lt){h+=`</${lt}>`;lt=''}},fl=()=>{if(imgs.length){h+=mosaic(imgs);imgs=[]}},open=t=>{if(lt!==t){cl();h+=`<${t}>`;lt=t}};
@@ -1057,6 +1062,7 @@ const SETS=()=>[
  ['Home columns','layout cards grid width dashboard auto 2 3 4',()=>seg('homeCols',[['auto','Auto'],[2,'2'],[3,'3'],[4,'4']],homeColsCfg())],
  ['Health overview columns','layout cards grid width health 2 3 4',()=>seg('healthCols',[[2,'2'],[3,'3'],[4,'4']],+CFG.healthCols||2)],
  ['Show item counts on cards','numbers count badge sidebar cards navigation appearance',()=>tog('navCounts',CFG.navCounts!==false)],
+ ['App icon','app icon logo brain gradient aurora spectrum plain color taskbar window appearance',()=>appIconPick()],
  ['Navigation layout','sidebar top bar cards icons only compact rail menu appearance',()=>seg('navLayout',[['side','Sidebar'],['top','Top bar'],['cards','Cards'],['grid','Icon grid'],['icons','Icons']],CFG.navLayout)],
  ['Sidebar columns','sidebar cards columns 2 3 two three wide width grid layout',()=>seg('navCols',[['2','2 columns'],['3','3 columns']],navCols())],
  ['Week starts on','calendar monday sunday saturday',()=>seg('week',[[1,'Monday'],[0,'Sunday'],[6,'Saturday']],CFG.week)],
@@ -1300,8 +1306,8 @@ function hbView(shown,wrap){const B=HB(),it=B.items,sty=p=>`left:${Math.max(0,p.
   if(b.startsWith('img:')&&p.att)return `<div class="bitem bimg${fx(p)}" data-bid="${esc(b)}" style="${sty(p)}"><img data-att="${esc(p.att)}" alt="" draggable="false"><button class="cx bdel" data-act="hbDel" data-val="${esc(b)}" aria-label="Remove" title="${b.startsWith('msg:')?'Delete message':'Remove from board'}">${lineIco('M6 6l12 12M18 6L6 18')}</button>${grip}</div>`;
   delete it[b];hbDirty=true;return ''});
  if(hbDirty){hbDirty=false;setTimeout(saveCfg)}
- return `${hbTools()}<div class="hboard" id="hboard">${cards.join('')}${extra.join('')}</div>`}
-const hbTools=()=>`<div class="hbtools"><button class="g" data-act="hbAdd" data-val="pick">${lineIco('M5 4h14v10l-6 6H5zM13 20v-6h6')}Sticky note</button><button class="g" data-act="hbAdd" data-val="msg">${uiIco('push-pin','📌')}Message</button><button class="g" data-act="hbAdd" data-val="img">${uiIco('image','🖼️')}Image</button><span class="meta hbhint">Drag cards by any empty spot, resize from the corner. Right-click a note, message or image for options.</span><span style="flex:1"></span><button class="x" data-act="homeLayout" data-val="columns">Back to columns</button></div>`;
+ return `${hbTools()}<div class="hboard" id="hboard" style="zoom:${hbZf()}">${cards.join('')}${extra.join('')}</div>`}
+const hbTools=()=>`<div class="hbtools"><button class="g" data-act="hbAdd" data-val="pick">${lineIco('M5 4h14v10l-6 6H5zM13 20v-6h6')}Sticky note</button><button class="g" data-act="hbAdd" data-val="msg">${uiIco('push-pin','📌')}Message</button><button class="g" data-act="hbAdd" data-val="img">${uiIco('image','🖼️')}Image</button><span class="meta hbhint">Drag cards by any empty spot, resize from the corner. Right-click a note, message or image for options.</span><span style="flex:1"></span><span class="hbzoom" role="group" aria-label="Board zoom"><button class="x" data-act="hbZoom" data-val="-1" title="Zoom out (Ctrl −)" aria-label="Zoom out">−</button><b data-act="hbZoom" data-val="0" title="Back to 100% (Ctrl 0)">${hbZ()}%</b><button class="x" data-act="hbZoom" data-val="1" title="Zoom in (Ctrl +)" aria-label="Zoom in">+</button></span><button class="x" data-act="homeLayout" data-val="columns">Back to columns</button></div>`;
 /* A card resized on the board scales everything inside it: the content is laid out narrower or wider and zoomed so it
    fills the box as large as it fits (between 50% and 300%). Cards that were never resized stay at normal size. */
 function hbScale(it){if(!it||!it.classList.contains('bcard'))return;const sec=it.querySelector(':scope>section'),p=HB().items[it.dataset.bid];if(!sec||!p)return;
@@ -1313,7 +1319,7 @@ function hbScale(it){if(!it||!it.classList.contains('bcard'))return;const sec=it
 function hbFit(){const b=$('hboard');if(!b)return;b.querySelectorAll('.bcard').forEach(hbScale);b.querySelectorAll('.bitem:not(.fixh) textarea[data-sticky],.bitem:not(.fixh) textarea[data-bmsg]').forEach(t=>{t.style.height='auto';t.style.height=t.scrollHeight+'px'});
  let h=0;b.querySelectorAll('.bitem').forEach(el=>{h=Math.max(h,el.offsetTop+el.offsetHeight)});b.style.height=Math.max(h+60,420)+'px'}
 // Where a new board item goes: near the top of what is on screen.
-function hbSpot(w){const b=$('hboard'),B=HB(),n=Object.keys(B.items).length;let y=40;if(b){const r=b.getBoundingClientRect();y=Math.max(0,(-r.top)/cz()+90)}return{x:24+(n%6)*28,y:y+(n%6)*20,w,z:++B.z}}
+function hbSpot(w){const b=$('hboard'),B=HB(),n=Object.keys(B.items).length;let y=40;if(b){const r=b.getBoundingClientRect();y=Math.max(0,(-r.top)/(cz()*hbZf())+90)}return{x:24+(n%6)*28,y:y+(n%6)*20,w,z:++B.z}}
 function hbAdd(kind,att){const B=HB();
  if(kind==='note'){const k=noteKeyFor('notes/','Sticky note',TD());FS[k]=writeNote({fm:{created:TD(),sticky:'true',color:'yellow'},body:''});B.items['note:'+k]=hbSpot(220);save();saveCfg();render();setTimeout(()=>{const t=document.querySelector(`[data-sticky="${CSS.escape(k)}"]`);if(t)t.focus()},30);toast('Sticky note added · it’s saved in Notes');return}
  if(kind==='msg'){const id='m-'+Date.now().toString(36),o=boardMsgs();o[id]='';boardMsgsWrite(o);B.items['msg:'+id]=hbSpot(300);save();saveCfg();render();setTimeout(()=>{const t=document.querySelector(`[data-bmsg="${id}"]`);if(t)t.focus()},30);return}
@@ -1342,7 +1348,7 @@ document.addEventListener('pointerdown',e=>{if(e.button!==0)return;const it=e.ta
  const res=e.target.closest('.bres'),grip=e.target.closest('.bgrip');
  if(!res&&!grip&&e.target.closest('input,textarea,select,button,a,[data-act],[role="button"],[contenteditable="true"],.sclr'))return;
  p.z=++B.z;it.style.zIndex=p.z;hbD={it,bid,p,res:!!res,x:e.clientX,y:e.clientY,ox:p.x,oy:p.y,ow:p.w,oh:it.offsetHeight,on:false};if(res||grip)e.preventDefault()});
-document.addEventListener('pointermove',e=>{if(!hbD)return;const dx=(e.clientX-hbD.x)/cz(),dy=(e.clientY-hbD.y)/cz();if(!hbD.on){if(Math.hypot(dx,dy)<5)return;hbD.on=true;document.body.classList.add('hbmoving');hbD.it.classList.add('moving')}
+document.addEventListener('pointermove',e=>{if(!hbD)return;const dx=(e.clientX-hbD.x)/(cz()*hbZf()),dy=(e.clientY-hbD.y)/(cz()*hbZf());if(!hbD.on){if(Math.hypot(dx,dy)<5)return;hbD.on=true;document.body.classList.add('hbmoving');hbD.it.classList.add('moving')}
  const b=$('hboard'),bw=b?b.clientWidth:2000;
  if(hbD.res){const k=hbD.bid.split(':')[0],mw={card:240,img:80,note:140,msg:160}[k]||120,mh={card:120,img:60,note:100,msg:50}[k]||60;
   hbD.p.w=Math.round(Math.max(mw,Math.min(bw-hbD.p.x,hbD.ow+dx)));hbD.p.fh=Math.round(Math.max(mh,hbD.oh+dy));hbD.it.style.width=hbD.p.w+'px';hbD.it.style.height=hbD.p.fh+'px';hbD.it.classList.add('fixh');hbD.it.querySelectorAll('textarea').forEach(t=>{t.style.height=''});hbScale(hbD.it)}
@@ -1679,7 +1685,7 @@ const MDI={
 const MDBAR=[[['heading','Heading (cycles H1–H3)'],['bold','Bold (Ctrl+B)'],['italic','Italic (Ctrl+I)'],['strike','Strikethrough (Ctrl+Shift+X)'],['mark','Highlight']],
  [['bullets','Bulleted list'],['numbers','Numbered list'],['check','Checklist'],['quote','Quote']],
  [['link','Link (Ctrl+K)'],['code','Inline code'],['codeblock','Code block'],['rule','Divider']]];
-const mdBar=()=>`<div class="mdbar" role="toolbar" aria-label="Formatting"><span class="mdgrp"><button type="button" data-act="undoN" title="Undo (Ctrl+Z)" aria-label="Undo" ${HIST.i>0?'':'disabled'}>${MDI.undo}</button><button type="button" data-act="redoN" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" ${HIST.i<HIST.stack.length-1?'':'disabled'}>${MDI.redo}</button></span>${MDBAR.map(g=>`<span class="mdgrp">${g.map(([id,t])=>`<button type="button" data-md="${id}" title="${t}" aria-label="${t.replace(/ \(.*\)$/,'')}">${MDI[id]}</button>`).join('')}</span>`).join('')}</div>`;
+const mdBar=()=>`<div class="mdbar" role="toolbar" aria-label="Formatting"><span class="mdgrp"><button type="button" data-act="undoN" title="Undo (Ctrl+Z)" aria-label="Undo" ${HIST.i>0?'':'disabled'}>${MDI.undo}</button><button type="button" data-act="redoN" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" ${HIST.i<HIST.stack.length-1?'':'disabled'}>${MDI.redo}</button></span>${MDBAR.map(g=>`<span class="mdgrp">${g.map(([id,t])=>`<button type="button" data-md="${id}" title="${t}" aria-label="${t.replace(/ \(.*\)$/,'')}">${id==='mark'?hlIco():MDI[id]}</button>`).join('')}</span>`).join('')}</div>`;
 function mdPut(ta,start,end,text,s0,s1){ta.focus();ta.setSelectionRange(start,end);let ok=false;try{ok=document.execCommand('insertText',false,text)}catch(e){}
  if(!ok||ta.value.slice(start,start+text.length)!==text){ta.setRangeText(text,start,end,'end');ta.dispatchEvent(new Event('input',{bubbles:true}))}
  ta.setSelectionRange(start+s0,start+(s1==null?s0:s1))}
@@ -1700,8 +1706,13 @@ function mdHeading(ta){const v=ta.value,ls=v.lastIndexOf('\n',ta.selectionStart-
 function mdLink(ta){const v=ta.value,s0=ta.selectionStart,s1=ta.selectionEnd,sel=v.slice(s0,s1);
  if(/^(https?:\/\/|mailto:)\S+$/.test(sel)){mdPut(ta,s0,s1,`[](${sel})`,1);return}
  const t=sel||'link text',txt=`[${t}](https://)`;mdPut(ta,s0,s1,txt,t.length+3,t.length+11)}
+/* Highlight colors (CFG.hlColor). Yellow is plain ==text==; the others are written as <mark style="background: #rrggbbaa;">,
+   the form other Markdown apps (Obsidian among them) also show. Right-click the Highlight button to pick one. */
+const HLC=[['yellow','Yellow','#f7d74a'],['green','Green','#6fd08c'],['blue','Blue','#5fb4f0'],['pink','Pink','#f07fb4'],['purple','Purple','#b48cf0'],['orange','Orange','#f5a35a'],['red','Red','#f07070']];
+const hlC=()=>HLC.find(x=>x[0]===CFG.hlColor)||HLC[0],hlIco=()=>MDI.mark.replace('#e8b923',hlC()[2]);
+const hlCtx=()=>`<p class="ctxlab">Highlight color</p>${HLC.map(([id,l,c])=>`<button role="menuitemradio" aria-checked="${hlC()[0]===id}" data-ctx="hlc" data-v="${id}"><span class="ctxchk">${hlC()[0]===id?'✓':''}</span><span class="hlsw" style="background:${c}"></span>${l}</button>`).join('')}`;
 function mdDo(id){const ta=$('nb');if(!ta)return;
- if(id==='bold')mdWrap(ta,'**');else if(id==='italic')mdWrap(ta,'*');else if(id==='strike')mdWrap(ta,'~~');else if(id==='mark')mdWrap(ta,'==');else if(id==='code')mdWrap(ta,'`');
+ if(id==='bold')mdWrap(ta,'**');else if(id==='italic')mdWrap(ta,'*');else if(id==='strike')mdWrap(ta,'~~');else if(id==='mark'){const c=hlC();if(c[0]==='yellow')mdWrap(ta,'==');else mdWrap(ta,`<mark style="background: ${c[2]}73;">`,'</mark>')}else if(id==='code')mdWrap(ta,'`');
  else if(id==='heading')mdHeading(ta);else if(id==='link')mdLink(ta);else if(['bullets','numbers','check','quote'].includes(id))mdLines(ta,id);
  else if(id==='codeblock'){const s0=ta.selectionStart,s1=ta.selectionEnd,sel=ta.value.slice(s0,s1),pre=s0&&ta.value[s0-1]!=='\n'?'\n':'';mdPut(ta,s0,s1,`${pre}\`\`\`\n${sel}\n\`\`\`\n`,pre.length+4,pre.length+4+sel.length)}
  else if(id==='rule'){const s0=ta.selectionStart,pre=s0&&ta.value[s0-1]!=='\n'?'\n':'';mdPut(ta,s0,ta.selectionEnd,`${pre}\n---\n\n`,pre.length+6)}}
@@ -2902,6 +2913,26 @@ const swRow=(label,s,on)=>`<div class="swrow"><span>${label}</span>${tog(s,on,la
 const wxSettings=()=>`${L('Weather city')}<div class="row" style="margin:0;gap:8px;flex-wrap:nowrap;max-width:420px"><input id="wcity" value="${esc(CFG.weather?CFG.weather.name:'')}" placeholder="For example Madrid" autocomplete="off" aria-label="Weather city"><button class="g" data-act="wxFind">Save</button></div><p class="meta" style="margin:6px 0 0">${CFG.weather?`Showing the weather for ${esc([...new Set([CFG.weather.name,CFG.weather.admin,CFG.weather.country].filter(Boolean))].join(', '))}. Leave it empty and save to turn it off.`:'Shown on the Time & weather card on Home. Forecasts come from Open-Meteo.'}</p>${L('Temperature')}${seg('tempUnit',[['c','°C'],['f','°F']],CFG.tempUnit==='f'?'f':'c')}`;
 const seg=(s,o,c)=>`<div class="moods seg">${o.map(([v,l])=>`<button data-act="set" data-s="${s}" data-val="${v}" class="${String(c)===String(v)?'on':''}">${l}</button>`).join('')}</div>`;
 const L=t=>`<p class="meta" style="margin:14px 0 6px">${t}</p>`;
+/* App icon (CFG.appIcon): the white brain on a gradient of the section colors or on a plain color. Aurora is the
+   built-in icon. The desktop app swaps its window and taskbar icon to the choice; the browser tab icon follows too. */
+const BRAINP='M212,76V72a44,44,0,0,0-74.86-31.31,3.93,3.93,0,0,0-1.14,2.8v88.72a4,4,0,0,0,6.2,3.33A47.67,47.67,0,0,1,167.68,128a8.18,8.18,0,0,1,8.31,7.58,8,8,0,0,1-8,8.42,32,32,0,0,0-32,32v33.88a4,4,0,0,0,1.49,3.12,47.92,47.92,0,0,0,74.21-17.16,4,4,0,0,0-4.49-5.56A68.06,68.06,0,0,1,192,192h-7.73a8.18,8.18,0,0,1-8.25-7.47,8,8,0,0,1,8-8.53h8a51.6,51.6,0,0,0,24-5.88v0A52,52,0,0,0,212,76Zm-12,36h-4a36,36,0,0,1-36-36V72a8,8,0,0,1,16,0v4a20,20,0,0,0,20,20h4a8,8,0,0,1,0,16ZM88,28A44.05,44.05,0,0,0,44,72v4a52,52,0,0,0-4,94.12h0A51.6,51.6,0,0,0,64,176h7.73A8.18,8.18,0,0,1,80,183.47,8,8,0,0,1,72,192H64a67.48,67.48,0,0,1-15.21-1.73,4,4,0,0,0-4.5,5.55A47.93,47.93,0,0,0,118.51,213a4,4,0,0,0,1.49-3.12V176a32,32,0,0,0-32-32,8,8,0,0,1-8-8.42A8.18,8.18,0,0,1,88.32,128a47.67,47.67,0,0,1,25.48,7.54,4,4,0,0,0,6.2-3.33V43.49a4,4,0,0,0-1.14-2.81A43.85,43.85,0,0,0,88,28Zm8,48a36,36,0,0,1-36,36H56a8,8,0,0,1,0-16h4A20,20,0,0,0,80,76V72a8,8,0,0,1,16,0Z';
+const APPGRAD={aurora:null,spectrum:['#5b9bd5','#3f9aa5','#5fa57f','#d4a43a','#d4605a','#c9629b','#9a5fa0'],cool:['#38b6f5','#3f9aa5','#6f7fb0','#9a5fa0'],warm:['#d4a43a','#e08a3f','#e0566f','#c9629b']};
+const APPICONS=[['aurora','Aurora'],['spectrum','Spectrum'],['cool','Cool'],['warm','Warm'],['sky','Sky','#38b6f5'],['teal','Teal','#3f9aa5'],['green','Green','#5fa57f'],['gold','Gold','#d4a43a'],['coral','Coral','#d4605a'],['pink','Pink','#c9629b'],['purple','Purple','#9a5fa0'],['slate','Slate','#5a6270']];
+function appIconSVG(id,u){const x=APPICONS.find(i=>i[0]===id)||APPICONS[0],g=APPGRAD[x[0]];let defs='',bg;
+ if(x[2])bg=`<rect width="1024" height="1024" fill="${x[2]}"/>`;
+ else if(g){defs=`<linearGradient id="g${u}" x1="0" y1="0" x2="1" y2="1">${g.map((c,i)=>`<stop offset="${i/(g.length-1)}" stop-color="${c}"/>`).join('')}</linearGradient>`;bg=`<rect width="1024" height="1024" fill="url(#g${u})"/>`}
+ else{defs=`<filter id="b${u}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="110"/></filter>`;bg=`<rect width="1024" height="1024" fill="#38b6f5"/><g filter="url(#b${u})">${[[250,230,420,'#5b9bd5'],[800,200,380,'#9a7fd0'],[860,620,400,'#c9629b'],[560,900,420,'#d4a43a'],[150,760,400,'#3f9aa5'],[520,520,300,'#5fa57f']].map(([cx,cy,r,c])=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}" opacity=".95"/>`).join('')}</g>`}
+ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs>${defs}<clipPath id="c${u}"><circle cx="512" cy="512" r="512"/></clipPath></defs><g clip-path="url(#c${u})">${bg}</g><g transform="translate(192 192) scale(2.5)" fill="#fff"><path d="${BRAINP}"/></g></svg>`}
+const appIconPick=()=>{const cur=APPICONS.some(i=>i[0]===CFG.appIcon)?CFG.appIcon:'aurora',b=i=>`<button class="appico ${cur===i[0]?'on':''}" data-act="set" data-s="appIcon" data-val="${i[0]}" aria-pressed="${cur===i[0]}" title="${i[1]}">${appIconSVG(i[0],'p'+i[0])}<span>${i[1]}</span></button>`;
+ return `<p class="meta lab0" style="margin:0 0 6px">Gradients</p><div class="appicos">${APPICONS.filter(i=>!i[2]).map(b).join('')}</div><p class="meta lab0" style="margin:12px 0 6px">Plain colors</p><div class="appicos">${APPICONS.filter(i=>i[2]).map(b).join('')}</div>`};
+let appIconCur=null;
+function appIconApply(){const id=APPICONS.some(i=>i[0]===CFG.appIcon)?CFG.appIcon:'aurora';if(id===appIconCur)return;const first=appIconCur===null;appIconCur=id;
+ const svg=appIconSVG(id,'w'),url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);let l=document.querySelector('link[rel="icon"]');if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l)}l.href=url;
+ // the built-in icon is Aurora, so at start-up there's nothing to swap; phones keep their launcher icon
+ const TW=window.__TAURI__&&window.__TAURI__.window;if(!TW||/Android|iPhone|iPad/i.test(navigator.userAgent)||(first&&id==='aurora'))return;
+ const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=256;c.getContext('2d').drawImage(im,0,0,256,256);
+  c.toBlob(b=>b&&b.arrayBuffer().then(a=>TW.getCurrentWindow().setIcon(new Uint8Array(a))).catch(()=>{}),'image/png')};im.src=url}
+
 // Settings search: filters the searchable settings (SETS) and shows each with its control, so it can be changed in place.
 let setQ='';
 const setSearch=()=>{const w=hWords(setQ),inTitle=x=>w.every(y=>fold(x[0]).includes(y)),hits=SETS().filter(setOk).filter(x=>{const t=fold(x[0]+' '+x[1]);return w.every(y=>t.includes(y))}).sort((a,b)=>inTitle(b)-inTitle(a));// settings whose name matches come first
@@ -2929,6 +2960,7 @@ V.settingsPage=()=>{if(SETG&&!setQ.trim()){const g=SETGROUPS.find(x=>x[0]===SETG
 ${setQ.trim()?setSearch():setTiles(setSplit())}`};
 V.settingsAll=()=>`<section><h2>Appearance</h2>${L('Theme')}${themeGrid()}
 ${L('Mode')}${seg('theme',[['system','System'],['light','Light'],['dark','Dark']],CFG.theme)}
+${L('App icon')}${appIconPick()}<p class="meta" style="margin:6px 0 0">${/Android|iPhone|iPad/i.test(navigator.userAgent)?'The icon on your home screen stays Aurora; phones only allow the one that came with the app.':'Changes the window and taskbar icon. The icon in your app menu stays Aurora.'}</p>
 ${L('Design style')}${seg('uiStyle',[['default','Prodify'],['accent','Accent'],['colorful','Colorful'],['mono','Black & gray'],['material','Material']],['accent','colorful','mono','material'].includes(CFG.uiStyle)?CFG.uiStyle:'default')}<p class="meta" style="margin:6px 0 0">Changes shapes, buttons, fields and type across the app. Works with any theme and color.</p>
 ${(THEMES[CFG.palette]||THEMES.classic).acc?`${L('Accent color')}<div class="moods">${Object.entries(ACC).map(([k,a])=>`<button data-act="set" data-s="accent" data-val="${k}" class="${CFG.accent===k?'on':''}"><span class="dot" style="background:${a[0]}"></span>${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`:''}
 ${L('Font')}${seg('font',[['jetbrains','JetBrains Mono'],['default','Classic'],['serif','Serif'],['sans','Sans'],['mono','Mono']],CFG.font)}<p class="meta" style="margin:6px 0 0">JetBrains Mono is the default. Classic uses Figtree for menus and Literata for writing. The others change the whole app.</p>
@@ -4124,6 +4156,7 @@ else if(a==='wide'){const id=b.dataset.id,cur=CFG.navWide||[];CFG.navWide=cur.in
 else if(a==='setSym')setIcon(b.dataset.id,'symbol',b.dataset.val);
 else if(a==='symDef')setIcon(b.dataset.id,'symbol',null);
 else if(a==='icoDef')setIcon(b.dataset.id,'emoji',null);
+else if(a==='hbZoom'){hbZoomStep(+b.dataset.val);return}
 else if(a==='navHidT'){navHidSet(b.dataset.id,!navHid(b.dataset.id))}
 else if(a==='tgl'){const g2=b.dataset.g,id=b.dataset.id,key=g2==='tab'?'tabOff':homeOffKey(),cur=g2==='tab'?(CFG.tabOff||[]):homeOff();if(g2==='tab'&&id==='settings')return;CFG[key]=cur.includes(id)?cur.filter(x=>x!==id):[...cur,id];saveCfg()}
 else if(a==='mv'){const g2=b.dataset.g,id=b.dataset.id,o=orderOf(g2),i0=o.indexOf(id),i1=i0+(+b.dataset.dir);if(i0<0||i1<0||i1>=o.length)return;[o[i0],o[i1]]=[o[i1],o[i0]];setOrder(g2,o)}
@@ -4316,7 +4349,7 @@ const projCtx=()=>{const p=getP(ctxK.slice(3)),c=pColor(p),own=/^#[0-9a-f]{6}$/i
 async function projDel(id){const p=getP(id);if(!FS['projects/'+id+'.md'])return;
  if(CFG.confirmProject!==false&&!await askConfirm({title:'Delete this project?',text:`“${p.name}” will be deleted. Its tasks and notes are kept.`}))return;
  putTasks(tasks().map(t=>t.proj===id?{...t,proj:''}:t));delete FS['projects/'+id+'.md'];if(curP===id){curP=null;edP=false}armed=null;save();render();toast('Project deleted')}
-const ctxHTML=()=>ctxK==='navbar'?navbarCtx():ctxK.startsWith('pj:')?projCtx():ctxK.startsWith('bi:')?hbCtx():ctxK.startsWith('hc:')?homeCtx():ctxK.startsWith('task:')?taskCtx():ctxK.startsWith('st:')?stCtx():ctxK.startsWith('cat:')?catCtx():ctxK.startsWith('nav:')?navCtx():ctxK.startsWith('col:')?colCtx():ctxK.startsWith('list:')?(l=>`<button role="menuitem" data-ctx="ledit">Edit details</button><button role="menuitem" data-ctx="lpin">${l.pinned==='true'?'Unpin':'Pin'}</button>${SMART.includes(l.id)?'':`<button role="menuitem" class="danger" data-ctx="ldel">${ctxArm?'Click again to delete':'Delete list'}</button>`}`)(getList(ctxK.slice(5))):`<button role="menuitem" data-ctx="pin">${isPinned(ctxK)?'Unpin':'Pin'}</button><button role="menuitem" data-ctx="arch">${isArch(ctxK)?'Unarchive':'Archive'}</button><button role="menuitem" class="danger" data-ctx="del">${trashable(ctxK)?'Move to Trash…':'Delete…'}</button>`;
+const ctxHTML=()=>ctxK==='hl'?hlCtx():ctxK==='navbar'?navbarCtx():ctxK.startsWith('pj:')?projCtx():ctxK.startsWith('bi:')?hbCtx():ctxK.startsWith('hc:')?homeCtx():ctxK.startsWith('task:')?taskCtx():ctxK.startsWith('st:')?stCtx():ctxK.startsWith('cat:')?catCtx():ctxK.startsWith('nav:')?navCtx():ctxK.startsWith('col:')?colCtx():ctxK.startsWith('list:')?(l=>`<button role="menuitem" data-ctx="ledit">Edit details</button><button role="menuitem" data-ctx="lpin">${l.pinned==='true'?'Unpin':'Pin'}</button>${SMART.includes(l.id)?'':`<button role="menuitem" class="danger" data-ctx="ldel">${ctxArm?'Click again to delete':'Delete list'}</button>`}`)(getList(ctxK.slice(5))):`<button role="menuitem" data-ctx="pin">${isPinned(ctxK)?'Unpin':'Pin'}</button><button role="menuitem" data-ctx="arch">${isArch(ctxK)?'Unarchive':'Archive'}</button><button role="menuitem" class="danger" data-ctx="del">${trashable(ctxK)?'Move to Trash…':'Delete…'}</button>`;
 // Saves a copy of a Storage image or PDF, named after its title (the desktop app asks where to save it).
 async function stDownload(x){const ext=(x.att.match(/\.[a-z0-9]+$/i)||[''])[0],name=((x.title||'').replace(/[\\/:*?"<>|]+/g,' ').trim()||'file')+ext;
  try{if(TAURI&&(ACCT||STORE_DB)){const u=await attPlain(x.att);if(u&&await TAURI.invoke('save_download',{name,data:u8b64(u)}))toast('Saved '+name);return}if(TAURI){if(await TAURI.invoke('export_attachment',{name:x.att,saveAs:name}))toast('Saved '+name);return}
@@ -4338,7 +4371,7 @@ function stCtxAct(id,a){const[k,i]=id.split(':'),l=stRead(k),x=l[+i];if(!x){clos
 const closeCtx=()=>{const m=$('ctx');if(m)m.hidden=true;ctxK=null;ctxArm=false};
 function openCtx(k,x,y){ctxK=k;ctxArm=false;const m=$('ctx');m.innerHTML=ctxHTML();m.hidden=false;
  const r=m.getBoundingClientRect(),z=cz();m.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))/z+'px';m.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))/z+'px';m.tabIndex=-1;m.focus({preventScroll:true})}
-document.addEventListener('contextmenu',e=>{const nb=e.target.closest&&e.target.closest('#nav .navb');if(nb){e.preventDefault();openCtx('nav:'+nb.dataset.v,e.clientX,e.clientY);return}
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('[data-md="mark"]')){e.preventDefault();openCtx('hl',e.clientX,e.clientY);return}const nb=e.target.closest&&e.target.closest('#nav .navb');if(nb){e.preventDefault();openCtx('nav:'+nb.dataset.v,e.clientX,e.clientY);return}
  const na=e.target.closest&&e.target.closest('#nav,#navgrip,#navedge');if(na&&CFG.navLayout!=='top'){e.preventDefault();openCtx('navbar',e.clientX,e.clientY);return}
  const cb=e.target.closest&&e.target.closest('[data-cat]');if(cb){e.preventDefault();ctxCatSc=cb.dataset.csc||'notes';openCtx('cat:'+cb.dataset.cat,e.clientX,e.clientY);return}
  const tk=e.target.closest&&e.target.closest('[data-tk]');if(tk&&!e.target.closest('input,textarea')){e.preventDefault();openCtx('task:'+tk.dataset.tk,e.clientX,e.clientY);return}
@@ -4368,6 +4401,7 @@ document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest
   else if(a==='hchide'){const hk=homeOffKey();CFG[hk]=[...new Set([...homeOff(),id])];saveCfg();render();toast(boardMode()?'Card hidden on the board. Bring it back from Customize Home':'Card hidden. Bring it back from Customize Home');return}
   else if(a==='hcedit'){homeEdit=true;render();return}
   CFG.homeColors=o;saveCfg();render();return}
+ if(k==='hl'){closeCtx();CFG.hlColor=c.dataset.v;saveCfg();document.querySelectorAll('[data-md="mark"]').forEach(b=>b.innerHTML=hlIco());const ta=$('nb');if(ta&&ta.selectionEnd>ta.selectionStart)mdDo('mark');else if(ta)ta.focus();return}
  if(k==='navbar'){const a=c.dataset.ctx;closeCtx();if(a==='nunhid'){navHidSet(c.dataset.v,false);render();return}if(a==='nbshow'&&CFG.navAuto)navAutoSet(false);if(a==='nbhide'&&!CFG.navAuto)navAutoSet(true);return}
  if(k&&k.startsWith('cat:')){const n=k.slice(4),a=c.dataset.ctx;
   if(a==='catedit'){closeCtx();const sc=ctxCatSc,b=catBase(n,sc)||{},nm=(allCats(sc).get(n.toLowerCase())||{name:n}).name;catEd={sc,orig:nm,name:nm,sym:b.sym||'folder',emoji:b.emoji||'📁'};icoPick=null;
