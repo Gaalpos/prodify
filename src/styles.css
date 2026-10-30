@@ -2329,3 +2329,8 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 #app.navc3 .nc{font-size:19px}
 #app.navc3 .nl{margin-top:10px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+/* Right-click menus: clearer group titles, each group set off by a line */
+.ctxlab{margin:10px 12px 4px;font-size:13.5px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--ink)}
+.ctxlab:first-child{margin-top:6px}
+.ctxlab:not(:first-child){border-top:1px solid var(--line);padding-top:10px;margin-top:8px}
+.ctxhr+.ctxlab{border-top:0;padding-top:0;margin-top:8px}
