@@ -3005,8 +3005,11 @@ function appIconApply(){const id=APPICONS.some(i=>i[0]===CFG.appIcon)?CFG.appIco
  const svg=appIconSVG(id,'w'),url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);let l=document.querySelector('link[rel="icon"]');if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l)}l.href=url;
  // the built-in icon is Aurora, so at start-up there's nothing to swap; phones keep their launcher icon
  const TW=window.__TAURI__&&window.__TAURI__.window;if(!TW||/Android|iPhone|iPad/i.test(navigator.userAgent)||(first&&id==='aurora'))return;
- const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=256;c.getContext('2d').drawImage(im,0,0,256,256);
-  c.toBlob(b=>b&&b.arrayBuffer().then(a=>TW.getCurrentWindow().setIcon(new Uint8Array(a))).catch(()=>{}),'image/png')};im.src=url}
+ // Linux menus and taskbars read the icon from the app's launcher, so a per-user launcher points at the picture too
+ const lnx=/Linux/.test(navigator.userAgent),launcher=png=>lnx&&TAURI.invoke('set_launcher_icon',{png,id}).catch(e=>toast(String(e)));
+ if(id==='aurora'){launcher(null)}
+ const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=512;c.getContext('2d').drawImage(im,0,0,512,512);
+  c.toBlob(b=>b&&b.arrayBuffer().then(a=>{const u=new Uint8Array(a);if(id!=='aurora')launcher(u8b64(u));return TW.getCurrentWindow().setIcon(u)}).catch(()=>{}),'image/png')};im.src=url}
 
 // Settings search: filters the searchable settings (SETS) and shows each with its control, so it can be changed in place.
 let setQ='';
@@ -3035,7 +3038,7 @@ V.settingsPage=()=>{if(SETG&&!setQ.trim()){const g=SETGROUPS.find(x=>x[0]===SETG
 ${setQ.trim()?setSearch():setTiles(setSplit())}`};
 V.settingsAll=()=>`<section><h2>Appearance</h2>${L('Theme')}${themeGrid()}
 ${L('Mode')}${seg('theme',[['system','System'],['light','Light'],['dark','Dark']],CFG.theme)}
-${L('App icon')}${appIconPick()}<p class="meta" style="margin:6px 0 0">${/Android|iPhone|iPad/i.test(navigator.userAgent)?'The icon on your home screen stays Aurora; phones only allow the one that came with the app.':'Changes the window and taskbar icon. The icon in your app menu stays Aurora.'}</p>
+${L('App icon')}${appIconPick()}<p class="meta" style="margin:6px 0 0">${/Android|iPhone|iPad/i.test(navigator.userAgent)?'The icon on your home screen stays Aurora; phones only allow the one that came with the app.':/Linux/.test(navigator.userAgent)?'Changes the window, taskbar and app menu icon. Some panels update after Prodify is opened again.':'Changes the window and taskbar icon. The icon in your Start menu stays Aurora.'}</p>
 ${L('Design style')}${seg('uiStyle',[['default','Prodify'],['accent','Accent'],['colorful','Colorful'],['mono','Black & gray'],['material','Material']],['accent','colorful','mono','material'].includes(CFG.uiStyle)?CFG.uiStyle:'default')}<p class="meta" style="margin:6px 0 0">Changes shapes, buttons, fields and type across the app. Works with any theme and color.</p>
 ${(THEMES[CFG.palette]||THEMES.classic).acc?`${L('Accent color')}<div class="moods">${Object.entries(ACC).map(([k,a])=>`<button data-act="set" data-s="accent" data-val="${k}" class="${CFG.accent===k?'on':''}"><span class="dot" style="background:${a[0]}"></span>${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`:''}
 ${L('Font')}${seg('font',[['jetbrains','JetBrains Mono'],['default','Classic'],['serif','Serif'],['sans','Sans'],['mono','Mono']],CFG.font)}<p class="meta" style="margin:6px 0 0">JetBrains Mono is the default. Classic uses Figtree for menus and Literata for writing. The others change the whole app.</p>
