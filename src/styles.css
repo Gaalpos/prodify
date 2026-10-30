@@ -2385,3 +2385,12 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 .sttabs .ntabs{flex-wrap:wrap}.sttabs .ntab:not(.cattile){flex:0 0 auto;min-width:max-content;max-width:none}
 @media (max-width:760px){.ntab:not(.cattile){flex:1 1 calc(50% - 10px);min-width:max-content;max-width:none}}
 @media (min-width:761px){.ntab:not(.cattile){gap:8px;padding:8px 12px 8px 8px}.ntab:not(.cattile) .nti{width:32px;height:32px}.ntab:not(.cattile) .nti .sym{width:17px;height:17px}.ntab:not(.cattile) .ntc{font-size:16px}}
+/* Keyboard shortcuts sheet: a filter box and the groups in two balanced columns */
+.kbcard{width:min(780px,100%);max-height:min(86vh,760px);display:flex;flex-direction:column}
+.kbsearch{display:flex;margin:0 0 6px}.kbsearch input{flex:1}
+.kbcols{columns:2 300px;column-gap:28px;overflow-y:auto;padding-right:4px;margin-right:-4px}
+.kbgrp{break-inside:avoid;margin:0 0 6px}
+.kbgrp .kbh{margin:12px 0 4px}
+.kbkeys{flex:none;display:inline-flex;align-items:center;gap:3px}
+.kbthen{font-size:11px;color:var(--mut);margin:0 2px}
+.kbfoot{margin:10px 0 0;font-size:12px}

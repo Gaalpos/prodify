@@ -1996,22 +1996,51 @@ function backupSettings(){if(BKL===null){BK.list().then(l=>{BKL=l||[];if(view===
  return `<section><h2>Backups</h2><div class="swrow"><span>Daily automatic backup <span class="meta">Keeps the last 7 backups of all your notes, tasks and other files (photos and PDFs aren’t included).</span></span>${swBtn(CFG.autoBackup!==false,'data-act="bkAutoT"','Daily automatic backup')}</div>
 <div class="row" style="margin:10px 0"><button class="g" data-act="bkNow">${lineIco('M12 3v12M7 10l5 5 5-5M5 21h14')}Back up now</button><span class="meta">${TAURI?'Saved in your Prodify folder, in .prodify-backups':'Saved in this browser'}</span></div>
 ${(BKL||[]).length?(BKL||[]).map(([n,sz])=>`<div class="hlrow static"><span class="t"><b>${bkLabel(n)}</b><span class="meta">${(sz/1024).toFixed(0)} KB</span></span><button class="x" data-act="bkRestore" data-val="${esc(n)}">${armed==='bk:'+n?'Click again to restore':'Restore'}</button></div>`).join(''):`<p class="meta">${BKL===null?'Loading…':'No backups yet.'}</p>`}</section>`}
-/* Keyboard shortcuts: ? shows them all; g then a letter jumps to a section; q opens quick capture. They work when you
-   aren't typing in a field. */
-const KSEC=[['h','today'],['n','notes'],['j','journal'],['t','tasks'],['p','projects'],['b','habits'],['e','health'],['c','collections'],['a','calendar'],['i','insights'],['s','files'],[',','settings']];
-let kGo=0,KSH=false;
-function kbShow(){let o=$('kbhelp');if(!KSH){if(o)o.remove();return}if(!o){o=document.createElement('div');o.id='kbhelp';o.className='onb';o.setAttribute('role','dialog');o.setAttribute('aria-label','Keyboard shortcuts');document.body.appendChild(o)}
- const k=x=>x.split('+').map(y=>`<kbd>${y}</kbd>`).join(' ');const row=(keys,l)=>`<div class="kbrow"><span>${l}</span><span>${keys}</span></div>`;
+/* Keyboard shortcuts. Single keys work when you aren't typing in a field: ? shows them all, g then a letter jumps to
+   a section, q opens quick capture and n / t / e / j / l open it on a note, task, event, journal entry or link.
+   Ctrl shortcuts work everywhere: Ctrl+K search, Ctrl+N new note, Ctrl+1…9 the sidebar's sections in order,
+   Ctrl+, Settings, Ctrl+/ this list, Alt+← back. */
+const KSEC=[['h','today'],['n','notes'],['j','journal'],['t','tasks'],['p','projects'],['b','habits'],['e','health'],['c','collections'],['a','calendar'],['i','insights'],['s','files'],['m','music'],[',','settings']];
+const KNEW=[['n','note'],['t','task'],['e','event'],['j','journal'],['l','link']];
+let kGo=0,KSH=false,kbQ='';
+const kbGroups=()=>{const sec=id=>(TABS.find(x=>x[0]===id)||[])[1]||id,ok=v=>v==='settings'||secOn(v),qc=k=>secOn(qcOk(k));
+ const nav=visTabs().filter(t=>!navHid(t[0])).slice(0,9);
+ return [['Anywhere',[['Ctrl+K','Search or run a command'],['Ctrl+N','New note',secOn('notes')],['q','Quick capture'],['Ctrl+,','Settings'],['Alt+←','Back'],['Esc','Close a menu or panel'],['?','Show these shortcuts'],['Ctrl+/','Show these shortcuts'],['Ctrl+B','Show or hide the sidebar',CFG.navLayout!=='top'],['Ctrl+L','Lock Prodify',!!(CFG.lock&&CFG.lock.hash)],['Ctrl++','Zoom in'],['Ctrl+−','Zoom out'],['Ctrl+0','Reset zoom']]],
+  ['Create',KNEW.map(([key,k])=>[key,{note:'New note',task:'New task',event:'New event',journal:'New journal entry',link:'Save a link'}[k],qc(k)])],
+  // one row per section: g + letter, and Ctrl + its place in the sidebar for the first nine
+  ['Go to',visTabs().filter(t=>ok(t[0])).map(t=>{const g=KSEC.find(x=>x[1]===t[0]),i=nav.findIndex(x=>x[0]===t[0]);return[[g?'g '+g[0]:'',i>=0?'Ctrl+'+(i+1):''].filter(Boolean).join('|'),t[1]]}).filter(r=>r[0])],
+  ['Home',[['/','Search Home'],['Enter','Open the first result or save'],['Ctrl+PageUp','Previous page'],['Ctrl+PageDown','Next page'],['Ctrl++','Zoom the board in',true,'On the board'],['Ctrl+−','Zoom the board out',true,'On the board']]],
+  ['Notes',[['Ctrl+E','Switch between View and Edit'],['Ctrl+B','Bold'],['Ctrl+I','Italic'],['Ctrl+Shift+X','Strikethrough'],['Ctrl+Z','Undo'],['Ctrl+Y','Redo'],['Ctrl+S','Save now'],['[[','Link to a note, project or item']]]]
+  .map(([g,l])=>[g,l.filter(r=>r[2]!==false)]).filter(([,l])=>l.length)};
+const kbKeys=x=>x.includes('|')?x.split('|').map(kbKeys).join(' <span class="kbthen">or</span> '):x==='Ctrl++'?'<kbd>Ctrl</kbd> <kbd>+</kbd>':x.split(x.includes('+')?'+':' ').map(y=>`<kbd>${esc(y)}</kbd>`).join(x.includes('+')?' ':' <span class="kbthen">then</span> ');
+function kbList(){const q=fold(kbQ.trim());let n=0;const h=kbGroups().map(([g,l])=>{const r=l.filter(([k,lab,,note])=>!q||fold(lab+' '+k+' '+(note||'')+' '+g).includes(q));n+=r.length;
+  return r.length?`<div class="kbgrp"><p class="meta kbh">${g}</p>${r.map(([k,lab,,note])=>`<div class="kbrow"><span>${lab}${note?` <span class="meta">· ${note}</span>`:''}</span><span class="kbkeys">${kbKeys(k)}</span></div>`).join('')}</div>`:''}).join('');
+ return n?h:`<p class="empty">No shortcut matches “${esc(kbQ.trim())}”.</p>`}
+function kbShow(){let o=$('kbhelp');if(!KSH){if(o)o.remove();kbQ='';return}if(!o){o=document.createElement('div');o.id='kbhelp';o.className='onb';o.setAttribute('role','dialog');o.setAttribute('aria-label','Keyboard shortcuts');document.body.appendChild(o)}
  o.innerHTML=`<div class="onbcard kbcard"><div class="head" style="margin:0 0 10px"><h2 style="margin:0">Keyboard shortcuts</h2><button class="cx" data-act="kbClose" aria-label="Close" title="Close (Esc)">${lineIco('M6 6l12 12M18 6L6 18')}</button></div>
-<p class="meta kbh">Anywhere</p>${row(k('Ctrl+K'),'Search or run a command')+row(k('q'),'Quick capture')+row(k('Ctrl +')+' '+k('Ctrl −'),'Zoom in / out')+row(k('Ctrl 0'),'Reset zoom')+row(k('?'),'Show these shortcuts')+(CFG.lock&&CFG.lock.hash?row(k('Ctrl+L'),'Lock Prodify'):'')+row(k('Esc'),'Close a menu or panel')}
-<p class="meta kbh">Go to (press g, then the letter)</p><div class="kbgrid">${KSEC.filter(([,v])=>v==='settings'||secOn(v)).map(([key,v])=>row(k('g')+' '+k(key),(TABS.find(x=>x[0]===v)||[])[1]||v)).join('')}</div>
-<p class="meta kbh">Notes</p>${row(k('Ctrl+E'),'Switch between View and Edit')+row(k('[[')+'','Link to a note, project or item')}</div>`}
-document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||PWLOCK||ONB)return;const t=e.target;if(t&&(t.closest&&t.closest('input,textarea,select,[contenteditable="true"]')))return;
+<span class="sbox kbsearch"><input id="kbq" placeholder="Find a shortcut" value="${esc(kbQ)}" autocomplete="off" aria-label="Find a shortcut"></span><div class="kbcols" id="kblist">${kbList()}</div>
+<p class="meta kbfoot">Single keys work when you aren’t typing in a field.</p></div>`;
+ if(CFG.lang==='es')i18nRun(o);setTimeout(()=>{const i=$('kbq');if(i)i.focus()})}
+document.addEventListener('input',e=>{if(e.target.id!=='kbq')return;kbQ=e.target.value;const l=$('kblist');if(l){l.innerHTML=kbList();if(CFG.lang==='es')i18nRun(l)}});
+const kGoTo=v=>{flushNote&&flushNote();QC=null;qcShow();view=v;hq='';if(v==='notes')nmode='notes';window.scrollTo(0,0);render()};
+const kQC=type=>{if(type!=='auto'&&!secOn(qcOk(type)))return false;QC={text:'',type,f:{}};qcShow();return true};
+// Ctrl / Alt shortcuts: these work even while typing.
+document.addEventListener('keydown',e=>{if(PWLOCK||ONB)return;const mod=(e.ctrlKey||e.metaKey)&&!e.altKey,k=e.key;
  if(KSH&&e.key==='Escape'){KSH=false;kbShow();e.preventDefault();return}
+ if(mod&&!e.shiftKey&&k==='/'){e.preventDefault();KSH=!KSH;kbShow();return}
+ if(mod&&!e.shiftKey&&k===','){e.preventDefault();KSH=false;kbShow();kGoTo('settings');return}
+ if(mod&&!e.shiftKey&&k.toLowerCase()==='n'&&secOn('notes')){e.preventDefault();KSH=false;kbShow();kGoTo('notes');edN=null;ND=null;tplSel=null;addProp=false;render();setTimeout(focusNew);return}
+ if(mod&&!e.shiftKey&&/^[1-9]$/.test(k)){const t=visTabs().filter(x=>!navHid(x[0]))[+k-1];if(t){e.preventDefault();KSH=false;kbShow();kGoTo(t[0])}return}
+ if(e.altKey&&!e.ctrlKey&&!e.metaKey&&k==='ArrowLeft'&&!(e.target.closest&&e.target.closest('input,textarea,[contenteditable="true"]'))){e.preventDefault();if(!appBack())history.back();return}});
+// Single keys: only when not typing in a field.
+document.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||PWLOCK||ONB)return;const t=e.target;if(t&&(t.closest&&t.closest('input,textarea,select,[contenteditable="true"]')))return;
  if(e.key==='?'){KSH=!KSH;kbShow();e.preventDefault();return}
- if(kGo&&Date.now()-kGo<1500){kGo=0;const m=KSEC.find(([x])=>x===e.key.toLowerCase());if(m&&(m[1]==='settings'||secOn(m[1]))){e.preventDefault();flushNote&&flushNote();view=m[1];hq='';window.scrollTo(0,0);render()}return}
+ if(KSH)return;
+ if(kGo&&Date.now()-kGo<1500){kGo=0;const m=KSEC.find(([x])=>x===e.key.toLowerCase());if(m&&(m[1]==='settings'||secOn(m[1]))){e.preventDefault();kGoTo(m[1])}return}
  if(e.key==='g'){kGo=Date.now();e.preventDefault();return}
- if(e.key==='q'&&!QC){e.preventDefault();QC={text:'',type:'auto',f:{}};qcShow()}});
+ if(QC)return;
+ if(e.key==='q'){e.preventDefault();kQC('auto');return}
+ const nw=KNEW.find(([x])=>x===e.key);if(nw&&kQC(nw[1]))e.preventDefault()});
 document.addEventListener('pointerdown',e=>{if(KSH&&e.target.id==='kbhelp'){KSH=false;kbShow()}});
 /* Pasting into the Home search bar never saves on its own. A link or text lands in the bar with a "Save" row on
    top of the results (links → Storage › Links, text → a new note, first line as the title); images and PDFs wait in
