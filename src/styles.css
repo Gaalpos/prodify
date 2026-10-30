@@ -2364,3 +2364,12 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 .nlist>.sbox{margin:0 0 8px;display:flex}.nlist>.sbox input{flex:1;width:100%}
 .nlist>button.g{margin:0 0 10px}
 .nlist .nsort{padding:0 4px 6px}
+/* Home pages (virtual desktops): tabs above the cards */
+.hpages{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.hpages>button[data-hp]{all:unset;cursor:pointer;padding:6px 14px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--mut);background:color-mix(in srgb,var(--ink) 6%,transparent);transition:background .15s,color .15s}
+.hpages>button[data-hp]:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.hpages>button[data-hp].on{color:var(--onac,#fff);background:var(--ac)}
+.hpages>button[data-hp]:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.hpages .hpname{width:140px;padding:5px 12px;border-radius:999px;font-size:13.5px}
+.hpages .hpadd{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;color:var(--mut);border:1px dashed var(--line)}
+.hpages .hpadd:hover{color:var(--ink);border-color:var(--ac)}.hpages .hpadd .sym{width:14px;height:14px}
