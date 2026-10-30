@@ -876,7 +876,7 @@ function qcShow(){let o=$('qcap');if(!QC){if(o)o.remove();return}
  o.dataset.type=QC.type;o.style.setProperty('--qk',vivid(secColor(qcOk(g))));
  o.innerHTML=`<div class="qchead"><b>Quick capture</b><button class="cx" data-act="qcClose" aria-label="Close" title="Close (Esc)">${lineIco('M6 6l12 12M18 6L6 18')}</button></div>
 <div class="moods seg qctypes">${tps.map(([k,l])=>`<button data-act="qcType" data-val="${k}" class="${QC.type===k?'on':''}" aria-pressed="${QC.type===k}">${l}</button>`).join('')}</div>
-${qcForm(QC.type)}
+<div class="qcbody">${qcForm(QC.type)}</div>
 <div class="qcfoot"><span class="meta qcwill">Saves as ${QCWILL[g]}</span><button class="b tick" data-act="qcSave" aria-label="Save" title="Save (Enter)">${lineIco('M5 12.5l4.5 4.5L19 7')}</button></div>`;
  setTimeout(()=>{const t=o.querySelector('#qctext,#qct,#qcu,#qcj');if(t&&!o.contains(document.activeElement)){t.focus();if(t.setSelectionRange)t.setSelectionRange(t.value.length,t.value.length)}})}
 function qcSave(){qcSync();const f=QC.f||{},g=QC.type==='auto'?qcGuess(QC.text||''):QC.type;

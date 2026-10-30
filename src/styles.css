@@ -2355,3 +2355,8 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 .cd-game .cbig.hasc{aspect-ratio:auto;background:none}
 .cd-game .cbig.hasc img{height:auto;max-height:520px;object-fit:contain}
 @media (max-width:760px){.cdetail.cd-game{grid-template-columns:1fr}.cd-game .cbig{max-width:380px}}
+/* Quick capture keeps one size whatever the type: the form area has a fixed height and text boxes fill it */
+.qcbody{height:208px;display:flex;flex-direction:column;overflow-y:auto}
+.qcbody>.qcform,.qcbody>#qctext{flex:1 1 auto;min-height:0}
+.qcbody>.qcform{display:flex;flex-direction:column}
+.qcbody>#qctext,.qcbody .qcnote textarea,.qcbody .qcjournal textarea{flex:1 1 auto;min-height:60px;resize:none}
