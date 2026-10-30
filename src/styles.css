@@ -2360,3 +2360,7 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 .qcbody>.qcform,.qcbody>#qctext{flex:1 1 auto;min-height:0}
 .qcbody>.qcform{display:flex;flex-direction:column}
 .qcbody>#qctext,.qcbody .qcnote textarea,.qcbody .qcjournal textarea{flex:1 1 auto;min-height:60px;resize:none}
+/* Notes list: search, New note and Sort sit apart evenly (the search is wrapped in .sbox now) */
+.nlist>.sbox{margin:0 0 8px;display:flex}.nlist>.sbox input{flex:1;width:100%}
+.nlist>button.g{margin:0 0 10px}
+.nlist .nsort{padding:0 4px 6px}
