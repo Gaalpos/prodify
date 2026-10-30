@@ -1115,7 +1115,7 @@ const SETS=()=>[
  ['Run setup again','setup onboarding welcome tour start features choose sections wizard',()=>`<button class="g" data-act="onbStart">Run setup again</button>`],
  ['Users','users people profiles family switch user multi multiple accounts add remove who is using',()=>usersSettings().replace(/^<section class="usersec"><h2>Users<\/h2>/,'').replace(/<\/section>$/,''),'raw'],
  ...(TAURI?[['Backup folder','backup folder mirror copy second drive usb external disk',()=>mirSection().replace(/^<section><h2>Backup folder<\/h2>/,'').replace(/<\/section>$/,''),'raw']]:[]),
- ['Start writing when search finds nothing','home journal search type write new note entry nothing found quick capture',()=>swRow('Start writing when search finds nothing','hqNote',CFG.hqNote!==false)],
+ ['Start writing when search finds nothing','home journal search type write new note entry nothing found quick capture',()=>seg('hqMode',[['pause','After a pause'],['enter','When I press Enter'],['off','Off']],hqMode())],
  ['Search bar above the tab bar on phones','search bar bottom phone mobile thumb reach home',()=>tog('searchLow',!!CFG.searchLow)],
  ['Keep Home cards in the column you put them','home cards columns fixed flow order drag move',()=>tog('homeFixed',!!CFG.homeFixed)],
  ...(innerWidth<=760?[['Phone tab bar','phone mobile tab bar bottom icons navigation more pick reorder sections',()=>'<button class="g" data-act="mEditOpen">Edit tab bar</button>','raw']]:[]),
@@ -1167,7 +1167,7 @@ function homeResults(){if(hq.startsWith('/'))return cmdHelp();const G=[hqSaveRow
  if(go.length)G.unshift(sgroup('Go to',go.length,`<div class="gorow">${go.slice(0,8).map(([v,sb,l,p])=>`<button class="g" data-act="goSub" data-v="${v}" data-sub="${sb}">${p?`<span class="meta">${p} ›</span>`:''}${l}</button>`).join('')}</div>`));
  const st=SETS().filter(setOk).filter(x=>hMatch(x[0],x[1]));
  if(st.length)G.push(sgroup('Settings',st.length,st.map(x=>setRow(x)).join(''),'<button class="x" data-act="nav" data-v="settings">All settings</button>'));
- return G.join('')||`<section><p class="empty">Nothing found for “${esc(hq.trim())}”. Type / to see commands.</p></section>`}
+ return G.join('')||`<section><p class="empty">Nothing found for “${esc(hq.trim())}”. ${hqMode()!=='off'&&secOn('notes')&&!hq.trim().startsWith('/')?'Press Enter to start a note with it, or type / to see commands.':'Type / to see commands.'}</p></section>`}
 /* Commands typed after "/" on Home. Each one has an id, default words (changeable in Settings → Commands), a label,
    a usage hint and plan(arg), which returns {say, go}: say is shown in the / menu before Enter ("Adds task …"),
    go performs it. Without go, say explains what's missing and Enter just shows it. */
@@ -2058,8 +2058,10 @@ const hqTray=()=>!(HQP&&HQP.files)?'':`<section class="sttray hqtray"><div class
    (CFG.hqNote), a short pause turns it into a new note: the text moves into the note's body and the cursor stays
    at its end, so writing simply carries on. "Back to search" undoes it. */
 let hqNT=null;
-const hqNothing=()=>{const q=hq.trim();return q.length>=3&&!q.startsWith('/')&&!(HQP&&HQP.files)&&!hqOffer()&&secOn('notes')&&/class="empty">Nothing found/.test(homeResults())};
-function hqWatch(){clearTimeout(hqNT);if(CFG.hqNote===false||!hqNothing())return;const q0=hq;hqNT=setTimeout(()=>{const a=document.activeElement;if(view==='today'&&hq===q0&&a&&a.id==='hq'&&hqNothing())hqToNote(hq)},550)}
+// CFG.hqMode: 'pause' (after half a second), 'enter' (only when Enter is pressed) or 'off'; older setups had hqNote.
+const hqMode=()=>['pause','enter','off'].includes(CFG.hqMode)?CFG.hqMode:CFG.hqNote===false?'off':'pause';
+const hqNothing=(min=3)=>{const q=hq.trim();return q.length>=min&&!q.startsWith('/')&&!(HQP&&HQP.files)&&!hqOffer()&&secOn('notes')&&/class="empty">Nothing found/.test(homeResults())};
+function hqWatch(){clearTimeout(hqNT);if(hqMode()!=='pause'||!hqNothing())return;const q0=hq;hqNT=setTimeout(()=>{const a=document.activeElement;if(view==='today'&&hq===q0&&a&&a.id==='hq'&&hqNothing())hqToNote(hq)},550)}
 function hqToNote(text){clearTimeout(hqNT);flushNote();hq='';view='notes';nmode='notes';edN=null;ND=null;tplSel=null;addProp=false;render();window.scrollTo(0,0);
  const ta=$('nb'),m=$('main');if(!ta){hq=text;view='today';render();return}
  if(m){m.classList.remove('hq2note');void m.offsetWidth;m.classList.add('hq2note');setTimeout(()=>m.classList.remove('hq2note'),400)}
@@ -2230,7 +2232,7 @@ const jEntries=all=>{const f=jCatF&&jCatF.toLowerCase(),words=fold(jq).split(/\s
  const items=[...Object.entries(mcDays).map(([d,l])=>({s:d+' '+l[l.length-1].t,h:jMoodCard(d,l)})),...entKeys().filter(inCat).map(jeRead).map(e=>({s:e.date+' '+(e.time||'99'),h:jeCard(e)})),...dayKeys().filter(k=>freeText(k)!==null&&inCat(k)).map(k=>({s:k.slice(8,-3)+' 00',h:jDayCard(k)}))].sort((a,b)=>b.s.localeCompare(a.s));
  return `${jCatBar()}<div class="row" style="margin:0 0 14px"><span class="sbox"><input id="jq" value="${esc(jq)}" placeholder="Search the journal" aria-label="Search the journal" autocomplete="off">${jq?`<button class="sclr" data-act="sclr" data-for="jq" aria-label="Clear search" title="Clear">${lineIco('M6 6l12 12M18 6L6 18')}</button>`:''}</span></div>
 ${f?`<p class="meta" style="margin:-6px 0 14px">${items.length} entr${items.length===1?'y':'ies'} in ${esc(jCatF)} · <button class="x" data-act="jCat" data-v="${esc(jCatF)}">Show all</button></p>`:''}
-${jNew?writeBox(1):''}${!jq&&!f?onThisDay():''}${items.map(x=>x.h).join('')||(jq||f?`<section><p class="empty" ${jq&&!f?'data-jnone="1"':''}>No entries match${jq?` “${esc(jq)}”`:''}.</p></section>`:'<section><p class="empty">No entries yet. Press + to write your first one.</p></section>')}`};
+${jNew?writeBox(1):''}${!jq&&!f?onThisDay():''}${items.map(x=>x.h).join('')||(jq||f?`<section><p class="empty" ${jq&&!f?'data-jnone="1"':''}>No entries match${jq?` “${esc(jq)}”`:''}.${jq&&!f&&hqMode()!=='off'?' Press Enter to start an entry with it.':''}</p></section>`:'<section><p class="empty">No entries yet. Press + to write your first one.</p></section>')}`};
 
 /* Task lists. Today, All and Completed are built in; tasks in no list show in Today and All.
    Each list's name, icon, color and pin live in lists/<id>.md (built-in ones only once customized);
@@ -2632,8 +2634,9 @@ let jtab='all',jer=30,jCatF=null,JC=[],JM=0,jNew=false,jq='';
 /* Writing in the Journal's search: when nothing matches (and no category filter is on), a short pause opens a new
    entry with the text in it and the cursor at its end, so writing carries on. Same setting as Home (CFG.hqNote). */
 let jqNT=null;
-const jqNothing=()=>jq.trim().length>=3&&!!document.querySelector('[data-jnone]');
-function jqWatch(){clearTimeout(jqNT);if(CFG.hqNote===false||!jqNothing())return;const q0=jq;jqNT=setTimeout(()=>{const a=document.activeElement;if(view==='journal'&&jq===q0&&a&&a.id==='jq'&&jqNothing())jqToEntry(jq)},550)}
+document.addEventListener('keydown',e=>{if(e.target.id==='jq'&&e.key==='Enter'&&!e.shiftKey&&hqMode()!=='off'&&jqNothing(1)){e.preventDefault();jqToEntry(jq)}});
+const jqNothing=(min=3)=>jq.trim().length>=min&&!!document.querySelector('[data-jnone]');
+function jqWatch(){clearTimeout(jqNT);if(hqMode()!=='pause'||!jqNothing())return;const q0=jq;jqNT=setTimeout(()=>{const a=document.activeElement;if(view==='journal'&&jq===q0&&a&&a.id==='jq'&&jqNothing())jqToEntry(jq)},550)}
 function jqToEntry(text){clearTimeout(jqNT);jq='';jNew=true;render();const ta=$('jt'),box=document.querySelector('.jnew');if(!ta){jNew=false;jq=text;render();return}
  if(box){box.classList.add('jq2new');setTimeout(()=>box.classList.remove('jq2new'),400)}
  ta.value=text;ta.focus();ta.setSelectionRange(text.length,text.length);ta.dispatchEvent(new Event('input',{bubbles:true}));
@@ -3062,7 +3065,7 @@ ${CFG.navLayout!=='top'?swRow('Auto-hide sidebar','navAuto',!!CFG.navAuto)+'<p c
 ${swRow('Show scrollbars','scrollbars',!!CFG.scrollbars)}<p class="meta" style="margin:6px 0 0">Off hides every scrollbar in the app; you can still scroll with the wheel, touchpad or keyboard.</p>
 ${L('Card colors')}${seg('cardColors',[['soft','Soft'],['vibrant','Vibrant']],CFG.cardColors==='vibrant'?'vibrant':'soft')}<p class="meta" style="margin:6px 0 0">Colors of the side cards and the section tiles (Notes, Collections, Health…).</p>
 ${swRow('Show item counts on cards','navCounts',CFG.navCounts!==false)}
-${secOn('today')?L('Home layout')+seg('homeLayout',[['columns','Columns'],['board','Board']],CFG.homeLayout==='board'?'board':'columns')+'<p class="meta" style="margin:6px 0 0">Board lets you place cards anywhere, with sticky notes, pinned messages and images from Storage.</p>':''}${(secOn('today')&&secOn('notes'))||secOn('journal')?swRow('Start writing when search finds nothing','hqNote',CFG.hqNote!==false)+'<p class="meta" style="margin:6px 0 0">Keep typing in a search bar: if nothing matches, Home’s search becomes a new note and the Journal’s a new entry, and you carry on writing there.</p>':''}${secOn('today')?swRow('Search bar above the tab bar on phones','searchLow',!!CFG.searchLow)+'<p class="meta" style="margin:6px 0 0">On a phone, Home’s search bar sits just above the icons at the bottom, within reach of your thumb.</p>':''}${secOn('today')?swRow('Keep Home cards in the column you put them','homeFixed',!!CFG.homeFixed)+'<p class="meta" style="margin:6px 0 0">Off: cards flow into the shortest column. On: each card stays in the column you drag it to.</p>':''}${secOn('today')?L('Home columns'):''}${secOn('today')?seg('homeCols',[['auto','Auto'],[2,'2'],[3,'3'],[4,'4']],homeColsCfg())+'<p class="meta" style="margin:6px 0 0">Auto uses 4 columns on big screens (like a full-screen 2K monitor) and 3 otherwise.</p>':''}
+${secOn('today')?L('Home layout')+seg('homeLayout',[['columns','Columns'],['board','Board']],CFG.homeLayout==='board'?'board':'columns')+'<p class="meta" style="margin:6px 0 0">Board lets you place cards anywhere, with sticky notes, pinned messages and images from Storage.</p>':''}${(secOn('today')&&secOn('notes'))||secOn('journal')?L('Start writing when search finds nothing')+seg('hqMode',[['pause','After a pause'],['enter','When I press Enter'],['off','Off']],hqMode())+'<p class="meta" style="margin:6px 0 0">When nothing matches what you type, Home’s search becomes a new note and the Journal’s a new entry, and you carry on writing there.</p>':''}${secOn('today')?swRow('Search bar above the tab bar on phones','searchLow',!!CFG.searchLow)+'<p class="meta" style="margin:6px 0 0">On a phone, Home’s search bar sits just above the icons at the bottom, within reach of your thumb.</p>':''}${secOn('today')?swRow('Keep Home cards in the column you put them','homeFixed',!!CFG.homeFixed)+'<p class="meta" style="margin:6px 0 0">Off: cards flow into the shortest column. On: each card stays in the column you drag it to.</p>':''}${secOn('today')?L('Home columns'):''}${secOn('today')?seg('homeCols',[['auto','Auto'],[2,'2'],[3,'3'],[4,'4']],homeColsCfg())+'<p class="meta" style="margin:6px 0 0">Auto uses 4 columns on big screens (like a full-screen 2K monitor) and 3 otherwise.</p>':''}
 ${secOn('health')?L('Health overview columns'):''}${secOn('health')?seg('healthCols',[[2,'2'],[3,'3'],[4,'4']],+CFG.healthCols||2):''}<p class="meta" style="margin:6px 0 0">Narrow windows show fewer columns so cards don’t get squeezed.</p></section>
 <section><h2>Calendar and time</h2>${L('Week starts on')}${seg('week',[[1,'Monday'],[0,'Sunday'],[6,'Saturday']],CFG.week)}
 </section>
@@ -4548,7 +4551,7 @@ function addChip(inp){const p=inp.dataset.npadd,n=draft();let vals=inp.value.spl
 document.addEventListener('keydown',e=>{const ds=e.target.dataset||{};
  if(ds.npadd!==undefined){if(e.key==='Enter'||e.key===','){e.preventDefault();if(e.target.value.trim())addChip(e.target)}
   else if(e.key==='Backspace'&&!e.target.value){const n=draft(),l=n.fm[ds.npadd];if(Array.isArray(l)&&l.length){l.pop();noteChanged('now');pendingFocus=`[data-npadd="${CSS.escape(ds.npadd)}"]`;render();const el=document.querySelector(pendingFocus);pendingFocus=null;if(el)el.focus()}}return}
- if(e.target.id==='hq'){if(e.key==='Escape'&&HQP&&HQP.files){e.preventDefault();hqClear();rerenderKeep();return}if(e.key==='Enter'){e.preventDefault();const o=hqOffer();if(o&&o!=='had'){hqSave();return}if(hq.trim().startsWith('/')){if(!runCmd())toast('Unknown command. Type / to see them all.')}else{const f=document.querySelector('#hres .sres');if(f)f.click()}return}
+ if(e.target.id==='hq'){if(e.key==='Escape'&&HQP&&HQP.files){e.preventDefault();hqClear();rerenderKeep();return}if(e.key==='Enter'){e.preventDefault();const o=hqOffer();if(o&&o!=='had'){hqSave();return}if(hq.trim().startsWith('/')){if(!runCmd())toast('Unknown command. Type / to see them all.')}else if(hqMode()!=='off'&&hqNothing(1)){hqToNote(hq)}else{const f=document.querySelector('#hres .sres');if(f)f.click()}return}
   if(e.key==='Escape'){hq='';rerenderKeep();return}}
  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();flushNote();if(view!=='today'){view='today';render()}const i=$('hq');if(i){i.focus();i.select()}return}
  if(e.key==='/'&&view==='today'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)&&!e.target.isContentEditable){const i=$('hq');if(i)i.focus();return}
