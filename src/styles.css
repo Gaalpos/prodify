@@ -2373,3 +2373,7 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 .hpages .hpname{width:140px;padding:5px 12px;border-radius:999px;font-size:13.5px}
 .hpages .hpadd{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;color:var(--mut);border:1px dashed var(--line)}
 .hpages .hpadd:hover{color:var(--ink);border-color:var(--ac)}.hpages .hpadd .sym{width:14px;height:14px}
+/* Home search → new note: the notes page eases in */
+@keyframes hq2note{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#main.hq2note{animation:hq2note .32s ease-out}
+@media (prefers-reduced-motion:reduce){#main.hq2note{animation:none}}
