@@ -1115,7 +1115,7 @@ const SETS=()=>[
  ['Run setup again','setup onboarding welcome tour start features choose sections wizard',()=>`<button class="g" data-act="onbStart">Run setup again</button>`],
  ['Users','users people profiles family switch user multi multiple accounts add remove who is using',()=>usersSettings().replace(/^<section class="usersec"><h2>Users<\/h2>/,'').replace(/<\/section>$/,''),'raw'],
  ...(TAURI?[['Backup folder','backup folder mirror copy second drive usb external disk',()=>mirSection().replace(/^<section><h2>Backup folder<\/h2>/,'').replace(/<\/section>$/,''),'raw']]:[]),
- ['Start a note when Home search finds nothing','home search type write new note nothing found quick capture',()=>swRow('Start a note when Home search finds nothing','hqNote',CFG.hqNote!==false)],
+ ['Start writing when search finds nothing','home journal search type write new note entry nothing found quick capture',()=>swRow('Start writing when search finds nothing','hqNote',CFG.hqNote!==false)],
  ['Search bar above the tab bar on phones','search bar bottom phone mobile thumb reach home',()=>tog('searchLow',!!CFG.searchLow)],
  ['Keep Home cards in the column you put them','home cards columns fixed flow order drag move',()=>tog('homeFixed',!!CFG.homeFixed)],
  ...(innerWidth<=760?[['Phone tab bar','phone mobile tab bar bottom icons navigation more pick reorder sections',()=>'<button class="g" data-act="mEditOpen">Edit tab bar</button>','raw']]:[]),
@@ -2230,7 +2230,7 @@ const jEntries=all=>{const f=jCatF&&jCatF.toLowerCase(),words=fold(jq).split(/\s
  const items=[...Object.entries(mcDays).map(([d,l])=>({s:d+' '+l[l.length-1].t,h:jMoodCard(d,l)})),...entKeys().filter(inCat).map(jeRead).map(e=>({s:e.date+' '+(e.time||'99'),h:jeCard(e)})),...dayKeys().filter(k=>freeText(k)!==null&&inCat(k)).map(k=>({s:k.slice(8,-3)+' 00',h:jDayCard(k)}))].sort((a,b)=>b.s.localeCompare(a.s));
  return `${jCatBar()}<div class="row" style="margin:0 0 14px"><span class="sbox"><input id="jq" value="${esc(jq)}" placeholder="Search the journal" aria-label="Search the journal" autocomplete="off">${jq?`<button class="sclr" data-act="sclr" data-for="jq" aria-label="Clear search" title="Clear">${lineIco('M6 6l12 12M18 6L6 18')}</button>`:''}</span></div>
 ${f?`<p class="meta" style="margin:-6px 0 14px">${items.length} entr${items.length===1?'y':'ies'} in ${esc(jCatF)} · <button class="x" data-act="jCat" data-v="${esc(jCatF)}">Show all</button></p>`:''}
-${jNew?writeBox(1):''}${!jq&&!f?onThisDay():''}${items.map(x=>x.h).join('')||(jq||f?`<section><p class="empty">No entries match${jq?` “${esc(jq)}”`:''}.</p></section>`:'<section><p class="empty">No entries yet. Press + to write your first one.</p></section>')}`};
+${jNew?writeBox(1):''}${!jq&&!f?onThisDay():''}${items.map(x=>x.h).join('')||(jq||f?`<section><p class="empty" ${jq&&!f?'data-jnone="1"':''}>No entries match${jq?` “${esc(jq)}”`:''}.</p></section>`:'<section><p class="empty">No entries yet. Press + to write your first one.</p></section>')}`};
 
 /* Task lists. Today, All and Completed are built in; tasks in no list show in Today and All.
    Each list's name, icon, color and pin live in lists/<id>.md (built-in ones only once customized);
@@ -2629,6 +2629,15 @@ document.addEventListener('drop',e=>{const k=dragKind(e);if(!k)return;e.preventD
 let jtab='all',jer=30,jCatF=null,JC=[],JM=0,jNew=false,jq='';
 // Saves a new journal entry: the Journal entry template's properties and text, plus this moment's mood,
 // the location, the chosen categories and what was written.
+/* Writing in the Journal's search: when nothing matches (and no category filter is on), a short pause opens a new
+   entry with the text in it and the cursor at its end, so writing carries on. Same setting as Home (CFG.hqNote). */
+let jqNT=null;
+const jqNothing=()=>jq.trim().length>=3&&!!document.querySelector('[data-jnone]');
+function jqWatch(){clearTimeout(jqNT);if(CFG.hqNote===false||!jqNothing())return;const q0=jq;jqNT=setTimeout(()=>{const a=document.activeElement;if(view==='journal'&&jq===q0&&a&&a.id==='jq'&&jqNothing())jqToEntry(jq)},550)}
+function jqToEntry(text){clearTimeout(jqNT);jq='';jNew=true;render();const ta=$('jt'),box=document.querySelector('.jnew');if(!ta){jNew=false;jq=text;render();return}
+ if(box){box.classList.add('jq2new');setTimeout(()=>box.classList.remove('jq2new'),400)}
+ ta.value=text;ta.focus();ta.setSelectionRange(text.length,text.length);ta.dispatchEvent(new Event('input',{bubbles:true}));
+ toastAct('Writing a new entry',[['Back to search',()=>{const t=$('jt'),v=(t&&t.value.trim())||text;jNew=false;JM=0;jq=v;render();const i=$('jq');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}]])}
 function jeNew(text,loc){const tp=fromTpl(FS[JTPL]?JTPL:null),fm={...tp.fm};if(!fm.created)fm.created=TD();fm.time=fm.time||hm(':');
  if(JM)fm.mood=String(JM);if(JEMO.length)fm.emotions=JEMO.slice();if(loc)fm.location=loc;if(JC.length)fm.categories=[...new Map([...(fm.categories||[]),...JC].map(x=>[x.toLowerCase(),x])).values()];
  const base=`${JE}${String(fm.created).slice(0,10)} ${String(fm.time).replace(':','-')}`;let k=base+'.md',n=2;while(FS[k])k=`${base} ${n++}.md`;
@@ -3053,7 +3062,7 @@ ${CFG.navLayout!=='top'?swRow('Auto-hide sidebar','navAuto',!!CFG.navAuto)+'<p c
 ${swRow('Show scrollbars','scrollbars',!!CFG.scrollbars)}<p class="meta" style="margin:6px 0 0">Off hides every scrollbar in the app; you can still scroll with the wheel, touchpad or keyboard.</p>
 ${L('Card colors')}${seg('cardColors',[['soft','Soft'],['vibrant','Vibrant']],CFG.cardColors==='vibrant'?'vibrant':'soft')}<p class="meta" style="margin:6px 0 0">Colors of the side cards and the section tiles (Notes, Collections, Health…).</p>
 ${swRow('Show item counts on cards','navCounts',CFG.navCounts!==false)}
-${secOn('today')?L('Home layout')+seg('homeLayout',[['columns','Columns'],['board','Board']],CFG.homeLayout==='board'?'board':'columns')+'<p class="meta" style="margin:6px 0 0">Board lets you place cards anywhere, with sticky notes, pinned messages and images from Storage.</p>':''}${secOn('today')&&secOn('notes')?swRow('Start a note when Home search finds nothing','hqNote',CFG.hqNote!==false)+'<p class="meta" style="margin:6px 0 0">Keep typing in Home’s search bar: if nothing matches, it becomes a new note and you carry on writing there.</p>':''}${secOn('today')?swRow('Search bar above the tab bar on phones','searchLow',!!CFG.searchLow)+'<p class="meta" style="margin:6px 0 0">On a phone, Home’s search bar sits just above the icons at the bottom, within reach of your thumb.</p>':''}${secOn('today')?swRow('Keep Home cards in the column you put them','homeFixed',!!CFG.homeFixed)+'<p class="meta" style="margin:6px 0 0">Off: cards flow into the shortest column. On: each card stays in the column you drag it to.</p>':''}${secOn('today')?L('Home columns'):''}${secOn('today')?seg('homeCols',[['auto','Auto'],[2,'2'],[3,'3'],[4,'4']],homeColsCfg())+'<p class="meta" style="margin:6px 0 0">Auto uses 4 columns on big screens (like a full-screen 2K monitor) and 3 otherwise.</p>':''}
+${secOn('today')?L('Home layout')+seg('homeLayout',[['columns','Columns'],['board','Board']],CFG.homeLayout==='board'?'board':'columns')+'<p class="meta" style="margin:6px 0 0">Board lets you place cards anywhere, with sticky notes, pinned messages and images from Storage.</p>':''}${(secOn('today')&&secOn('notes'))||secOn('journal')?swRow('Start writing when search finds nothing','hqNote',CFG.hqNote!==false)+'<p class="meta" style="margin:6px 0 0">Keep typing in a search bar: if nothing matches, Home’s search becomes a new note and the Journal’s a new entry, and you carry on writing there.</p>':''}${secOn('today')?swRow('Search bar above the tab bar on phones','searchLow',!!CFG.searchLow)+'<p class="meta" style="margin:6px 0 0">On a phone, Home’s search bar sits just above the icons at the bottom, within reach of your thumb.</p>':''}${secOn('today')?swRow('Keep Home cards in the column you put them','homeFixed',!!CFG.homeFixed)+'<p class="meta" style="margin:6px 0 0">Off: cards flow into the shortest column. On: each card stays in the column you drag it to.</p>':''}${secOn('today')?L('Home columns'):''}${secOn('today')?seg('homeCols',[['auto','Auto'],[2,'2'],[3,'3'],[4,'4']],homeColsCfg())+'<p class="meta" style="margin:6px 0 0">Auto uses 4 columns on big screens (like a full-screen 2K monitor) and 3 otherwise.</p>':''}
 ${secOn('health')?L('Health overview columns'):''}${secOn('health')?seg('healthCols',[[2,'2'],[3,'3'],[4,'4']],+CFG.healthCols||2):''}<p class="meta" style="margin:6px 0 0">Narrow windows show fewer columns so cards don’t get squeezed.</p></section>
 <section><h2>Calendar and time</h2>${L('Week starts on')}${seg('week',[[1,'Monday'],[0,'Sunday'],[6,'Saturday']],CFG.week)}
 </section>
@@ -3378,7 +3387,7 @@ function colAct(a,b){colFlush();const v=b.dataset.val;if(a==='back'||a==='open'|
 document.addEventListener('input',e=>{const t=e.target,f=t.dataset&&t.dataset.colf;
  if(f==='type'&&CD){colFlush();CD.type=t.value;colPut(CD);save();render();return}
  if(f){colField(f,t.value);return}
- if(t.id==='jq'){jq=t.value;const p=t.selectionStart;redraw();const n=$('jq');if(n){n.focus();n.setSelectionRange(p,p)}return}
+ if(t.id==='jq'){jq=t.value;const p=t.selectionStart;redraw();const n=$('jq');if(n){n.focus();n.setSelectionRange(p,p)}jqWatch();return}
  if(t.id==='setq'){setQ=t.value;const p=t.selectionStart;render();const n=$('setq');if(n){n.focus();n.setSelectionRange(p,p)}return}
  if(t.id==='colq'){colQ=t.value;const p=t.selectionStart;render();const n=$('colq');if(n){n.focus();n.setSelectionRange(p,p)}return}
  if(t.id==='cols'){colSQ=t.value;return}

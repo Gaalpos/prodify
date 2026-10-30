@@ -2394,3 +2394,7 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 .kbkeys{flex:none;display:inline-flex;align-items:center;gap:3px}
 .kbthen{font-size:11px;color:var(--mut);margin:0 2px}
 .kbfoot{margin:10px 0 0;font-size:12px}
+/* Journal search → new entry: the entry box eases in */
+@keyframes jq2new{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.jnew.jq2new{animation:jq2new .3s ease-out}
+@media (prefers-reduced-motion:reduce){.jnew.jq2new{animation:none}}
