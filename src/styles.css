@@ -2321,3 +2321,11 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 }
 /* Settings → Sections: the eye that hides a section from the sidebar */
 .drow .navhidb{color:var(--ink)}.drow .navhidb.off{color:var(--mut);opacity:.7}.drow .navhidb .sym{width:17px;height:17px}
+/* Cards sidebar with 3 columns: smaller cards so three fit side by side */
+@media (min-width:761px){
+#app.navc3 nav{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#app.navc3 nav .navb{min-height:78px;padding:10px;border-radius:14px}
+#app.navc3 .ni>.sym{width:34px;height:34px;padding:8px}
+#app.navc3 .nc{font-size:19px}
+#app.navc3 .nl{margin-top:10px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
