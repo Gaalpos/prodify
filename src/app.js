@@ -3025,7 +3025,15 @@ function appIconApply(){const id=APPICONS.some(i=>i[0]===CFG.appIcon)?CFG.appIco
 
 // Settings search: filters the searchable settings (SETS) and shows each with its control, so it can be changed in place.
 let setQ='';
-const setSearch=()=>{const w=hWords(setQ),inTitle=x=>w.every(y=>fold(x[0]).includes(y)),hits=SETS().filter(setOk).filter(x=>{const t=fold(x[0]+' '+x[1]);return w.every(y=>t.includes(y))}).sort((a,b)=>inTitle(b)-inTitle(a));// settings whose name matches come first
+/* Settings search looks at each setting's name and keywords and also at everything it shows: option buttons, switch
+   labels and descriptions (in Spanish too when the app is in Spanish), so "Enter" finds "When I press Enter".
+   The shown text is indexed once per visit to Settings (SETIX) and ranks below name and keyword matches. */
+let SETIX=null;
+const setText=x=>{if(!SETIX)SETIX=new Map();let t=SETIX.get(x[0]);if(t===undefined){let h='';try{h=x[2]()}catch(e){}
+  const bits=h.replace(/<(script|style)[\s\S]*?<\/\1>/g,' ').split(/<[^>]*>/).map(b=>unesc(b).replace(/\s+/g,' ').trim()).filter(Boolean);
+  if(CFG.lang==='es')bits.push(...[x[0],...bits].map(b=>I18N_ES[b]).filter(Boolean));t=fold(bits.join(' '));SETIX.set(x[0],t)}return t};
+const setSearch=()=>{const w=hWords(setQ),has=t=>w.every(y=>t.includes(y)),inTitle=x=>has(fold(x[0]+(CFG.lang==='es'&&I18N_ES[x[0]]?' '+I18N_ES[x[0]]:''))),inKeys=x=>has(fold(x[0]+' '+x[1])),
+  rank=x=>inTitle(x)?2:inKeys(x)?1:0,hits=SETS().filter(setOk).filter(x=>inKeys(x)||inTitle(x)||has(setText(x))).sort((a,b)=>rank(b)-rank(a));// name matches first, then keywords, then what the setting shows
  return hits.length?`<section>${hits.map(x=>setRow(x,w)).join('')}</section>`:`<section><p class="empty">No settings match “${esc(setQ.trim())}”.</p></section>`};
 /* Settings groups: the Settings page shows them as tiles, and each opens only its own sections (no long scroll).
    Sections are matched to a group by their heading (the Account section by its class); anything unknown goes to General. */
@@ -3900,7 +3908,7 @@ document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closes
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest&&e.target.closest('#main'))mainClickAt=Date.now()},true);
 function render(){if(['today','habits','insights'].includes(view))try{hLinkSync()}catch(e){}
 setTimeout(()=>{try{sndPaint()}catch(e){}try{nBell()}catch(e){}});
-if(!visTabs().some(t=>t[0]===view))view=visTabs()[0][0];if(view!=='settings')setQ='';if(!inBack)backArm();renderNav();renderMTabs();
+if(!visTabs().some(t=>t[0]===view))view=visTabs()[0][0];if(view!=='settings'){setQ='';SETIX=null}if(!inBack)backArm();renderNav();renderMTabs();
  // Re-drawing the same page keeps the scroll position (swapping the page's content would otherwise jump to the top);
  // going somewhere else starts at the top, as do actions that scroll there themselves first.
  const keepY=view===lastView?window.scrollY:null;
