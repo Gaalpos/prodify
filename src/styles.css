@@ -2349,3 +2349,9 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 /* Customize Home: the "Keep cards in their column" switch and the Reset button share a row */
 .hresetrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 10px}.hresetrow .hfixrow{margin:0;flex:1;min-width:260px}
 .hreset{flex:none}
+/* Game page: the cover keeps its own shape (box art, wide store art, square screens) in a wider column */
+.cdetail.cd-game{grid-template-columns:minmax(200px,380px) minmax(0,1fr)}
+.cd-game .cbig{aspect-ratio:4/3}
+.cd-game .cbig.hasc{aspect-ratio:auto;background:none}
+.cd-game .cbig.hasc img{height:auto;max-height:520px;object-fit:contain}
+@media (max-width:760px){.cdetail.cd-game{grid-template-columns:1fr}.cd-game .cbig{max-width:380px}}
