@@ -2020,7 +2020,7 @@ async function aiNote(kind){const k=edN;aiMenu=false;if(!k||!FS[k])return;const 
    AIN={k,kind,items:t.split('\n').map(x=>x.replace(/^[-*\d.)\s]+/,'').trim()).filter(x=>x&&!/^(none|ninguna?)\.?$/i.test(x)&&x.length<160).slice(0,12)}}}
  catch(e){AIN=null;toast('AI: '+(e&&e.message||e))}
  if(view==='notes')render()}
-const aiTools=k=>{if(!aiOn())return '';const menu=`<span class="aiwrap"><button class="g aibtn" data-act="aiMenu" aria-expanded="${aiMenu}" title="AI tools">${symbols()?sym('sparkle'):'✨'}AI</button>${aiMenu?`<span class="dmenu aimenu" role="menu"><button data-act="aiNote" data-val="sum" role="menuitem">Summarize</button><button data-act="aiNote" data-val="cats" role="menuitem">Suggest categories</button><button data-act="aiNote" data-val="tasks" role="menuitem">Find tasks</button></span>`:''}</span>`;
+const aiTools=k=>{if(!aiOn())return {menu:'',panel:''};const menu=`<span class="aiwrap"><button class="g aibtn" data-act="aiMenu" aria-expanded="${aiMenu}" title="AI tools">${symbols()?sym('sparkle'):'✨'}AI</button>${aiMenu?`<span class="dmenu aimenu" role="menu"><button data-act="aiNote" data-val="sum" role="menuitem">Summarize</button><button data-act="aiNote" data-val="cats" role="menuitem">Suggest categories</button><button data-act="aiNote" data-val="tasks" role="menuitem">Find tasks</button></span>`:''}</span>`;
  if(!AIN||AIN.k!==k)return {menu,panel:''};
  const close=`<button class="cx" data-act="aiClose" aria-label="Close" title="Close">${lineIco('M6 6l12 12M18 6L6 18')}</button>`,head=t=>`<div class="aihead"><b>${symbols()?sym('sparkle'):'✨'} ${t}</b>${close}</div>`;
  const panel=AIN.busy?`<div class="aipanel"><p class="meta aithink">Thinking…</p></div>`
