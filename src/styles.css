@@ -2379,7 +2379,9 @@ input,textarea,select,[contenteditable="true"],.mdview,.jent .md,.rkey,pre,code{
 @media (prefers-reduced-motion:reduce){#main.hq2note{animation:none}}
 /* Section tabs (Notes, Journal, Storage…): the title always shows in full. Each tab is at least as wide as its
    title and count, tabs still grow to fill the row, and the row wraps when they don't fit. */
-.ntab:not(.cattile){min-width:max-content;max-width:240px;flex:1 1 auto}
-.ntab:not(.cattile) .ntl{overflow:visible;text-overflow:clip;white-space:nowrap;flex:1 0 auto}
-.sttabs .ntabs{flex-wrap:wrap}.sttabs .ntab:not(.cattile){flex:1 1 auto;min-width:max-content;max-width:240px}
+.ntab:not(.cattile){min-width:max-content;max-width:none;flex:0 0 auto}
+.ntab:not(.cattile) .ntl{overflow:visible;text-overflow:clip;white-space:nowrap;flex:0 0 auto}
+.ntab:not(.cattile) .ntc{margin-left:6px}
+.sttabs .ntabs{flex-wrap:wrap}.sttabs .ntab:not(.cattile){flex:0 0 auto;min-width:max-content;max-width:none}
 @media (max-width:760px){.ntab:not(.cattile){flex:1 1 calc(50% - 10px);min-width:max-content;max-width:none}}
+@media (min-width:761px){.ntab:not(.cattile){gap:8px;padding:8px 12px 8px 8px}.ntab:not(.cattile) .nti{width:32px;height:32px}.ntab:not(.cattile) .nti .sym{width:17px;height:17px}.ntab:not(.cattile) .ntc{font-size:16px}}
