@@ -721,9 +721,12 @@ const CCSORT=[['added','Recently added'],['rating','Rating'],['title','Title'],[
 const ccDefTitle=c=>{const es=CFG.lang==='es'&&typeof I18N_ES!=='undefined',tr=x=>es&&I18N_ES[x]||x,t=tr(c.type&&c.type!=='all'?ctype(c.type).label:'Collections'),st=c.status?tr(c.type&&c.type!=='all'?statLabel(c.type,c.status):CSTATL[CSTAT.indexOf(c.status)]):'';return [c.fav?(es?'Favoritos: '+t:'Favorite '+t.toLowerCase()):t,st].filter(Boolean).join(' · ')};
 const ccTitle=c=>(c.title||'').trim()||ccDefTitle(c);
 /* Home card colors: each card follows its section's color (tinting it in the Colorful style); a color picked from the
-   card's right-click menu or Customize → Color (CFG.homeColors[id]) tints that card in every style. */
+   card's right-click menu or Customize → Color (hcMap()[id]) tints that card in every style. */
 const hcSec=id=>id.startsWith('cc:')?'collections':id.startsWith('tc:')?'tasks':((homeDefs().find(x=>x[0]===id)||[])[2]||'journal');
-const hcOwn=id=>(CFG.homeColors||{})[id]||'',hcColor=id=>hcOwn(id)||secColor(hcSec(id));
+// Columns and Board each keep their own card colors (CFG.homeColors / CFG.boardColors), like their hidden cards;
+// the board starts from the Columns colors until one is changed there.
+const hcKey=()=>boardMode()?'boardColors':'homeColors',hcMap=()=>(boardMode()&&CFG.boardColors?CFG.boardColors:CFG.homeColors)||{};
+const hcOwn=id=>hcMap()[id]||'',hcColor=id=>hcOwn(id)||secColor(hcSec(id));
 const homeCtx=()=>{const id=ctxK.slice(3),own=hcOwn(id),col=hcColor(id);
  return `<p class="ctxlab">Card color</p><div class="ctxsw">${LCOLORS.map(c=>`<button class="lsw ${own===c?'on':''}" data-ctx="hccol" data-v="${c}" style="background:${c}" aria-label="Color ${c}" aria-pressed="${own===c}"></button>`).join('')}${swCustom(own&&!LCOLORS.includes(own)?own:'',`data-homecolor="${esc(id)}"`,'lsw')}</div>${own?'<button role="menuitem" data-ctx="hcreset">Default color</button>':''}<hr class="ctxhr"><button role="menuitem" data-ctx="hcedit">Customize Home…</button><button role="menuitem" data-ctx="hchide">Hide this card</button>`};
 // A Home card's opening tag: its color (--cc) and classes added to whatever style/class it already has.
@@ -3320,7 +3323,7 @@ document.addEventListener('input',e=>{const t=e.target;if(t.id==='pnm'){PN.name=
 document.addEventListener('change',e=>{const t=e.target;if(EV&&(t.id==='evr'||t.id==='evn')){evSync();render();return}if(t.dataset&&t.dataset.ldcolor!==undefined&&LD){LD.color=t.value;render();return}
  if(t.dataset&&t.dataset.pcolor!==undefined){const p=getP(t.dataset.pcolor);p.color=t.value;putP(p);save();closeCtx();render();return}
  if(t.dataset&&t.dataset.stickycolor!==undefined){const k=t.dataset.stickycolor;if(FS[k]){const n=readNote(FS[k]);n.fm.color=t.value;FS[k]=writeNote(n);save()}closeCtx();render();return}
- if(t.dataset&&t.dataset.homecolor){const id=t.dataset.homecolor;CFG.homeColors={...(CFG.homeColors||{}),[id]:t.value};saveCfg();closeCtx();render();return}
+ if(t.dataset&&t.dataset.homecolor){const id=t.dataset.homecolor;CFG[hcKey()]={...hcMap(),[id]:t.value};saveCfg();closeCtx();render();return}
  if(t.dataset&&t.dataset.navcolor){const id=t.dataset.navcolor;CFG.navColors={...(CFG.navColors||{}),[id]:t.value};saveCfg();closeCtx();render();return}
  if(t.dataset&&t.dataset.lcolor!==undefined&&curList){const l=getList(curList);l.color=t.value;putList(l);save();render();return}
  if(e.target.id==='medcustom'&&e.target.value){medSetDur(+e.target.value);render()}});
@@ -4156,9 +4159,10 @@ else if(a==='wide'){const id=b.dataset.id,cur=CFG.navWide||[];CFG.navWide=cur.in
 else if(a==='setSym')setIcon(b.dataset.id,'symbol',b.dataset.val);
 else if(a==='symDef')setIcon(b.dataset.id,'symbol',null);
 else if(a==='icoDef')setIcon(b.dataset.id,'emoji',null);
-else if(a==='homeReset'){const bd=boardMode();askConfirm({title:bd?'Reset the board?':'Reset Home?',text:bd?'Cards go back to their default places, sizes and colors, and the zoom goes back to 100%. Hidden cards stay hidden; sticky notes, messages and images stay where they are.':'Cards go back to their default order, columns and colors. Hidden cards stay hidden and your own cards are kept.',ok:'Reset'}).then(ok=>{if(!ok)return;
+else if(a==='homeReset'){const bd=boardMode();askConfirm({title:bd?'Reset the board?':'Reset Home?',text:bd?'Cards go back to their default places, sizes and colors, and the zoom goes back to 100%. Hidden cards stay hidden; sticky notes, messages and images stay where they are, and Columns isn’t touched.':'Cards go back to their default order, columns and colors. Hidden cards stay hidden, your own cards are kept and the board isn’t touched.',ok:'Reset'}).then(ok=>{if(!ok)return;
   // Only the arrangement is reset: which cards are hidden, custom cards and board notes/messages/images are kept.
-  delete CFG.homeColors;if(bd){const B=HB();Object.keys(B.items).filter(k=>k.startsWith('card:')).forEach(k=>delete B.items[k]);delete CFG.hbZoom}else{delete CFG.homeOrder;delete CFG.homeColOf}
+  if(bd){const B=HB();Object.keys(B.items).filter(k=>k.startsWith('card:')).forEach(k=>delete B.items[k]);delete CFG.hbZoom;CFG.boardColors={}}
+  else{if(!CFG.boardColors)CFG.boardColors={...(CFG.homeColors||{})};delete CFG.homeOrder;delete CFG.homeColOf;delete CFG.homeColors}
   saveCfg();render();window.scrollTo(0,0);toast(bd?'Board reset':'Home reset')});return}
 else if(a==='hbZoom'){hbZoomStep(+b.dataset.val);return}
 else if(a==='navHidT'){navHidSet(b.dataset.id,!navHid(b.dataset.id))}
@@ -4400,11 +4404,11 @@ document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest
   else if(a==='pjdel'){projDel(id);return}
   render();return}
  if(k&&k.startsWith('bi:')){hbCtxAct(k.slice(3),c.dataset.ctx,c.dataset.v);return}
- if(k&&k.startsWith('hc:')){const id=k.slice(3),a=c.dataset.ctx;closeCtx();const o={...(CFG.homeColors||{})};
+ if(k&&k.startsWith('hc:')){const id=k.slice(3),a=c.dataset.ctx;closeCtx();const o={...hcMap()};
   if(a==='hccol')o[id]=c.dataset.v;else if(a==='hcreset')delete o[id];
   else if(a==='hchide'){const hk=homeOffKey();CFG[hk]=[...new Set([...homeOff(),id])];saveCfg();render();toast(boardMode()?'Card hidden on the board. Bring it back from Customize Home':'Card hidden. Bring it back from Customize Home');return}
   else if(a==='hcedit'){homeEdit=true;render();return}
-  CFG.homeColors=o;saveCfg();render();return}
+  CFG[hcKey()]=o;saveCfg();render();return}
  if(k==='hl'){closeCtx();CFG.hlColor=c.dataset.v;saveCfg();document.querySelectorAll('[data-md="mark"]').forEach(b=>b.innerHTML=hlIco());const ta=$('nb');if(ta&&ta.selectionEnd>ta.selectionStart)mdDo('mark');else if(ta)ta.focus();return}
  if(k==='navbar'){const a=c.dataset.ctx;closeCtx();if(a==='nunhid'){navHidSet(c.dataset.v,false);render();return}if(a==='nbshow'&&CFG.navAuto)navAutoSet(false);if(a==='nbhide'&&!CFG.navAuto)navAutoSet(true);return}
  if(k&&k.startsWith('cat:')){const n=k.slice(4),a=c.dataset.ctx;
